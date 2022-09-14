@@ -1,0 +1,16 @@
+# Ignore hidden directories and generic files
+.idea
+.gitignore
+LICENSE
+README.md
+
+# Ignore compose but exclude entrypoint
+compose
+!compose/go/entrypoint.sh
+
+# Ignore dev_vendor and hidden files
+dev_vendor
+**/*~
+**/*.log
+**/.DS_Store
+**/Thumbs.db

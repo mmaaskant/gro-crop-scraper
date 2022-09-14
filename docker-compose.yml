@@ -1,0 +1,40 @@
+version: "3.9"
+services:
+  go: # TODO: Add environment section with scraper worker counts + command for api/webhooks, remove entrypoint tail f?
+    build:
+      context: .
+      dockerfile: ./compose/go/Dockerfile
+    environment:
+      NETCAT_PORT_CHECK_SLEEP_DURATION: ${NETCAT_PORT_CHECK_SLEEP_DURATION}
+      MONGO_INITDB_PORT: ${MONGO_INITDB_PORT}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+      MONGODB_URI: ${MONGO_INITDB_URI}
+      GOPHERVISOR_CRAWLER_WORKER_COUNT: ${GOPHERVISOR_CRAWLER_WORKER_COUNT}
+    volumes:
+      - .:/src/gro-crop-scraper
+      - /src/gro-crop-scraper/compose
+      - ./dev_vendor:/go/
+      - /src/gro-crop-scraper/dev_vendor
+    working_dir: /src/gro-crop-scraper
+    entrypoint: ./compose/go/entrypoint.sh
+    depends_on:
+      - mongodb
+
+  mongodb:
+    build:
+      context: ./compose/mongodb
+      dockerfile: ./Dockerfile
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_ROOT_AUTHENTICATION_DB: ${MONGO_INITDB_ROOT_AUTHENTICATION_DB}
+    ports:
+      - "${MONGO_INITDB_PORT}:${MONGO_INITDB_PORT}"
+    volumes:
+      - ./compose/mongodb/data:/data/db
+    command: --logpath /dev/null
+
+# TODO: Separate into dev, or at least show that this file is meant for dev only + add note in repo about dev vendor
+# TODO: Use .env and offer .env templates in repo that do not contain passwords
