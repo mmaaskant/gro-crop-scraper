@@ -2,10 +2,12 @@ package crawler
 
 import (
 	"bytes"
+	"fmt"
 	"golang.org/x/net/html"
 	"io"
 	"log"
 	"net/http"
+	netUrl "net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -16,7 +18,6 @@ import (
 // HtmlCrawler is concurrency safe and keeps a registry of all found urls.
 type HtmlCrawler struct {
 	tag         string
-	baseUrl     string
 	client      *http.Client
 	regex       map[*regexp.Regexp]string
 	urlRegistry map[string]string
@@ -24,10 +25,9 @@ type HtmlCrawler struct {
 }
 
 // NewHtmlCrawler returns a new instance of HtmlCrawler and allows http.Client to be configured.
-func NewHtmlCrawler(tag string, baseUrl string, client *http.Client) *HtmlCrawler {
+func NewHtmlCrawler(tag string, client *http.Client) *HtmlCrawler {
 	return &HtmlCrawler{
 		tag,
-		baseUrl,
 		client,
 		make(map[*regexp.Regexp]string),
 		make(map[string]string),
@@ -92,7 +92,7 @@ func (hc *HtmlCrawler) clean(url string, b string) (string, error) {
 		log.Printf("Failed to parse HTML %s, error: %s", b, err)
 		return "", err
 	}
-	hc.appendBaseUrlToHref(url, n)
+	hc.formatUrl(url, n)
 	buf := new(bytes.Buffer)
 	err = html.Render(buf, n)
 	if err != nil {
@@ -132,16 +132,16 @@ func (hc *HtmlCrawler) hasRegisteredUrl(url string) bool {
 	return !ok
 }
 
-// appendBaseUrlToHref seeks out all href html attributes and if they are partial links will append
-// either the HtmlCrawler.baseUrl or the current Call's url based on its format.
-func (hc *HtmlCrawler) appendBaseUrlToHref(url string, n *html.Node) {
+// formatUrl seeks out all href html attributes and if they are partial links will append
+// either the current Call's base url or current url based on its format.
+func (hc *HtmlCrawler) formatUrl(url string, n *html.Node) {
 	url = hc.cleanUrl(url)
 	if n.Type == html.ElementNode {
 		for k, attr := range n.Attr {
 			if attr.Key == "href" && attr.Val != "" {
 				if ok, _ := hc.isCompleteUrl(attr.Val); !ok {
 					if attr.Val[0:1] == "/" {
-						attr.Val = hc.baseUrl + attr.Val
+						attr.Val = hc.getBaseUrl(url) + attr.Val
 					} else if attr.Val[0:1] != "#" {
 						attr.Val = url + attr.Val
 					}
@@ -151,8 +151,14 @@ func (hc *HtmlCrawler) appendBaseUrlToHref(url string, n *html.Node) {
 		}
 	}
 	for child := n.FirstChild; child != nil; child = child.NextSibling {
-		hc.appendBaseUrlToHref(url, child)
+		hc.formatUrl(url, child)
 	}
+}
+
+// getBaseUrl extracts the base url from the given url.
+func (hc *HtmlCrawler) getBaseUrl(url string) string {
+	u, _ := netUrl.Parse(url)
+	return fmt.Sprintf("%s://%s", u.Scheme, u.Host)
 }
 
 // cleanUrl makes sure that the provided url ends with "/" so it can be completed without corrupting.
@@ -166,5 +172,5 @@ func (hc *HtmlCrawler) cleanUrl(url string) string {
 
 // isCompleteUrl checks if the given url is callable or not and returns a bool accordingly.
 func (hc *HtmlCrawler) isCompleteUrl(url string) (bool, error) {
-	return regexp.MatchString(`^(https?://)?(\S)*(\.[a-z]{2,5}/?)`, url)
+	return regexp.MatchString(`^(https?://)(\S)*(\.[a-z]{2,5})`, url)
 }

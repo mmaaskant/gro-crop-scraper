@@ -44,27 +44,14 @@ func (cm *Manager) RegisterCrawler(c Crawler, calls []*Call) {
 
 // Start begins crawling using the provided Crawler and Call instances,
 // a supervisor.Supervisor instance is used to crawl concurrently.
-func (cm *Manager) Start(amountOfWorkers int) (*supervisor.Publisher, chan any) {
-	sv, p, rch := helper.StartSupervisor(amountOfWorkers, cm.crawl)
+func (cm *Manager) Start(amountOfWorkers int) {
+	sv, p, _ := helper.StartSupervisor(amountOfWorkers, cm.crawl)
 	for c, calls := range cm.crawlers {
 		for _, call := range calls {
 			p.Publish(newCrawlerJob(c, call))
 		}
 	}
-	go sv.Shutdown()
-	for r := range rch {
-		if cd, ok := r.(*Data); ok {
-			err := cm.db.InsertOne(database.NewEntity("scraped_html", map[string]any{
-				"tag":  cd.Tag,
-				"url":  cd.Call.Url,
-				"html": cd.Data,
-			}))
-			if err != nil {
-				log.Printf("Scraper failed to insert crawled HTML, error: %s", err)
-			}
-		}
-	}
-	return p, rch
+	sv.Shutdown()
 }
 
 // crawl receives crawlerJob instances and handles them,
@@ -79,6 +66,13 @@ func (cm *Manager) crawl(p *supervisor.Publisher, d any, rch chan any) {
 		p.Publish(newCrawlerJob(cj.c, foundCall))
 	}
 	if cj.call.UrlType == ExtractUrlType {
-		rch <- cd
+		err := cm.db.InsertOne(database.NewEntity("scraped_html", map[string]any{
+			"tag":  cd.Tag,
+			"url":  cd.Call.Url,
+			"html": cd.Data,
+		}))
+		if err != nil {
+			log.Printf("Scraper failed to insert crawled HTML, error: %s", err)
+		}
 	}
 }

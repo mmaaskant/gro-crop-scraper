@@ -2,7 +2,6 @@ package scraper
 
 import (
 	"fmt"
-	"github.com/mmaaskant/gophervisor/supervisor"
 	"github.com/mmaaskant/gro-crop-scraper/crawler"
 	"github.com/mmaaskant/gro-crop-scraper/database"
 	"log"
@@ -34,8 +33,8 @@ func (s *Scraper) RegisterCrawler(c crawler.Crawler, calls []*crawler.Call) {
 }
 
 // crawl iterates over all registered crawlers and starts crawling their provided crawler.Call instances.
-func (s *Scraper) crawl() (*supervisor.Publisher, chan any) {
-	return s.crawlerManager.Start(s.getWorkerCount("GOPHERVISOR_CRAWLER_WORKER_COUNT"))
+func (s *Scraper) crawl() {
+	s.crawlerManager.Start(s.getWorkerCount("GOPHERVISOR_CRAWLER_WORKER_COUNT"))
 }
 
 // getWorkerCount gets a worker count from an env variable and attempts to convert it to an int.

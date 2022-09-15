@@ -24,8 +24,8 @@ func NewMongoDbDriver() *MongoDbDriver {
 	return &MongoDbDriver{}
 }
 
-// Connect attempts to connect to an instance of MongoDB using the provided .env variables.
-func (mdd *MongoDbDriver) Connect() error {
+// connect attempts to connect to an instance of MongoDB using the provided .env variables.
+func (mdd *MongoDbDriver) connect() error {
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(os.Getenv("MONGODB_URI")))
 	if err == nil {
 		mdd.client = client
@@ -48,8 +48,11 @@ func (mdd *MongoDbDriver) GetOne(table string, params map[string]any) (*Entity, 
 // GetMany retrieves multiple rows from MongoDB and maps it to instances of Entity which it returns.
 // An optional limit is available to fetch results in batches.
 func (mdd *MongoDbDriver) GetMany(table string, params map[string]any, limit ...int) ([]*Entity, error) {
-	l := int64(limit[0])
-	opts := options.FindOptions{Limit: &l}
+	opts := options.FindOptions{}
+	if len(limit) > 0 {
+		l := int64(limit[0])
+		opts.Limit = &l
+	}
 	c, err := mdd.db.Collection(table).Find(context.TODO(), mdd.bsonMarshal(params), &opts)
 	if err != nil {
 		return nil, err
@@ -90,6 +93,9 @@ func (mdd *MongoDbDriver) bsonMarshal(d any) []byte {
 
 // convertToTime converts the primitive.DateTime received from MongoDB to time.Time
 func (mdd *MongoDbDriver) convertToTime(v any) *time.Time {
+	if v == nil {
+		return nil
+	}
 	pdt, ok := v.(primitive.DateTime)
 	if !ok {
 		log.Fatalf("Expected instance of primitive.DateTime while converting to *time.Time, got: %s", reflect.TypeOf(v))
