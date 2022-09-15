@@ -111,6 +111,7 @@ func (mdd *MongoDbDriver) InsertOne(e *Entity) error {
 	ir, err := mdd.db.Collection(e.Table).InsertOne(context.TODO(), data)
 	if err == nil {
 		e.Id = ir.InsertedID
+		e.Data["_id"] = ir.InsertedID
 	}
 	return err
 }
@@ -145,18 +146,25 @@ func (mdd *MongoDbDriver) mapData(entities []*Entity) map[string][]any {
 func (mdd *MongoDbDriver) setCreatedAt(e *Entity) {
 	t := time.Now()
 	e.CreatedAt = &t
-	e.Data["created_at"] = time.Now()
+	e.Data["created_at"] = primitive.NewDateTimeFromTime(t)
 	e.Data["updated_at"] = nil
 }
 
 // UpdateOne updates 1 instance of Entity.
 func (mdd *MongoDbDriver) UpdateOne(e *Entity) error {
-	_, err := mdd.db.Collection(e.Table).UpdateByID(context.TODO(), e.Id, mdd.bsonMarshal(e.Data))
+	mdd.setUpdatedAt(e)
+	_, err := mdd.db.Collection(e.Table).ReplaceOne(
+		context.TODO(),
+		mdd.bsonMarshal(map[string]any{"_id": e.Id}),
+		mdd.bsonMarshal(e.Data),
+	)
 	return err
 }
 
 // UpdateMany updates multiple rows within MongoDB based on the provided filter and fields to be updated.
 func (mdd *MongoDbDriver) UpdateMany(table string, filter map[string]any, update map[string]any) error {
+	update["updated_at"] = primitive.NewDateTimeFromTime(time.Now())
+	update = map[string]any{"$set": update}
 	_, err := mdd.db.Collection(table).UpdateMany(context.TODO(), mdd.bsonMarshal(filter), mdd.bsonMarshal(update))
 	return err
 }
@@ -165,7 +173,7 @@ func (mdd *MongoDbDriver) UpdateMany(table string, filter map[string]any, update
 func (mdd *MongoDbDriver) setUpdatedAt(e *Entity) {
 	t := time.Now()
 	e.UpdatedAt = &t
-	e.Data["updated_at"] = time.Now()
+	e.Data["updated_at"] = primitive.NewDateTimeFromTime(t)
 }
 
 // DeleteOne deletes 1 row within MongoDB based on the provided Entity.
