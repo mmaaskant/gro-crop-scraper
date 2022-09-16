@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/mmaaskant/gro-crop-scraper/crawler"
 	"github.com/mmaaskant/gro-crop-scraper/database"
+	"github.com/mmaaskant/gro-crop-scraper/scraper/config"
 	"log"
 	"os"
 	"strconv"
@@ -21,15 +22,14 @@ func NewScraper(db *database.Db) *Scraper {
 	}
 }
 
+// RegisterConfig adds an instance of config.Config to Scraper and will run it once Start is called.
+func (s *Scraper) RegisterConfig(c *config.Config) {
+	s.crawlerManager.RegisterCrawlers(c.Crawlers)
+}
+
 // Start starts Scraper and its components and waits till all components have finished running.
 func (s *Scraper) Start() {
 	s.crawl()
-}
-
-// RegisterCrawler registers a new Crawler within crawler.CrawlerManager,
-// provided crawler.Call instances will be crawled once scraper starts.
-func (s *Scraper) RegisterCrawler(c crawler.Crawler, calls []*crawler.Call) {
-	s.crawlerManager.RegisterCrawler(c, calls)
 }
 
 // crawl iterates over all registered crawlers and starts crawling their provided crawler.Call instances.

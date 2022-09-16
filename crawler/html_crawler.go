@@ -18,6 +18,7 @@ import (
 // HtmlCrawler is concurrency safe and keeps a registry of all found urls.
 type HtmlCrawler struct {
 	tag         string
+	origin      string
 	client      *http.Client
 	regex       map[*regexp.Regexp]string
 	urlRegistry map[string]string
@@ -25,9 +26,10 @@ type HtmlCrawler struct {
 }
 
 // NewHtmlCrawler returns a new instance of HtmlCrawler and allows http.Client to be configured.
-func NewHtmlCrawler(tag string, client *http.Client) *HtmlCrawler {
+func NewHtmlCrawler(origin string, client *http.Client) *HtmlCrawler {
 	return &HtmlCrawler{
-		tag,
+		"",
+		origin,
 		client,
 		make(map[*regexp.Regexp]string),
 		make(map[string]string),
@@ -37,6 +39,16 @@ func NewHtmlCrawler(tag string, client *http.Client) *HtmlCrawler {
 
 // GetTag returns HtmlCrawler's tag which is used to identify its data in other processes.
 func (hc *HtmlCrawler) GetTag() string {
+	return hc.tag
+}
+
+// SetTag sets HtmlCrawler's tag which is used to identify its data in other processes.
+func (hc *HtmlCrawler) SetTag(tag string) {
+	hc.tag = tag
+}
+
+// GetOrigin returns HtmlCrawler's origin which shows where the data originates from.
+func (hc *HtmlCrawler) GetOrigin() string {
 	return hc.tag
 }
 
@@ -64,10 +76,10 @@ func (hc *HtmlCrawler) Crawl(c *Call) *Data {
 	b, err := hc.get(c.Url)
 	if err != nil {
 		log.Printf("Failed to crawl url: %s, error: %s", c.Url, err)
-		return NewCrawlerData(hc.tag, c, "", nil, err)
+		return NewCrawlerData(hc.tag, hc.origin, c, "", nil, err)
 	}
 	calls := hc.findCalls(b)
-	return NewCrawlerData(hc.tag, c, b, calls, err)
+	return NewCrawlerData(hc.tag, hc.origin, c, b, calls, err)
 }
 
 // get requests data from the given url, cleans it by unescapes it and completing any found partial urls.

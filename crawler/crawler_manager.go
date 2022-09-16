@@ -36,6 +36,13 @@ func newCrawlerJob(c Crawler, call *Call) *crawlerJob {
 	}
 }
 
+// RegisterCrawlers registers multiple Crawler instances using RegisterCrawler.
+func (cm *Manager) RegisterCrawlers(crawlers map[Crawler][]*Call) {
+	for c, calls := range crawlers {
+		cm.RegisterCrawler(c, calls)
+	}
+}
+
 // RegisterCrawler registers a new Crawler within crawler.CrawlerManager,
 // provided crawler.Call instances will be crawled once scraper starts.
 func (cm *Manager) RegisterCrawler(c Crawler, calls []*Call) {
@@ -66,10 +73,11 @@ func (cm *Manager) crawl(p *supervisor.Publisher, d any, rch chan any) {
 		p.Publish(newCrawlerJob(cj.c, foundCall))
 	}
 	if cj.call.UrlType == ExtractUrlType {
-		err := cm.db.InsertOne(database.NewEntity("scraped_html", map[string]any{
-			"tag":  cd.Tag,
-			"url":  cd.Call.Url,
-			"html": cd.Data,
+		err := cm.db.InsertOne(database.NewEntity(database.DbScrapedDataTableName, map[string]any{
+			"tag":    cd.Tag,
+			"origin": cd.Origin,
+			"url":    cd.Call.Url,
+			"html":   cd.Data,
 		}))
 		if err != nil {
 			log.Printf("Scraper failed to insert crawled HTML, error: %s", err)

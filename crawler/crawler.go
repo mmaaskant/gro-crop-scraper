@@ -4,8 +4,10 @@ import (
 	"github.com/mmaaskant/gro-crop-scraper/attributes"
 )
 
-const DiscoverUrlType string = "DISCOVER"
-const ExtractUrlType string = "EXTRACT"
+const (
+	DiscoverUrlType string = "DISCOVER"
+	ExtractUrlType  string = "EXTRACT"
+)
 
 // Crawler crawls any URL and returns an instance of Data containing what it has found.
 type Crawler interface {
@@ -37,6 +39,7 @@ func NewCrawlerCall(url string, UrlType string, method string, headers map[strin
 // Data contains all data that was found by a Crawler.Crawl call, the Call itself, and a collection of found calls.
 type Data struct {
 	Tag        string
+	Origin     string
 	Call       *Call
 	Data       string
 	FoundCalls []*Call
@@ -44,9 +47,10 @@ type Data struct {
 }
 
 // NewCrawlerData returns a new instance of Data
-func NewCrawlerData(tag string, call *Call, data string, foundCalls []*Call, err error) *Data {
+func NewCrawlerData(tag string, origin string, call *Call, data string, foundCalls []*Call, err error) *Data {
 	return &Data{
 		tag,
+		origin,
 		call,
 		data,
 		foundCalls,
