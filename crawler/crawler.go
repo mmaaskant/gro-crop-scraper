@@ -24,8 +24,8 @@ type Call struct {
 	RequestType string
 }
 
-// NewCrawlerCall returns a new instance of Call.
-func NewCrawlerCall(r *http.Request, RequestType string) *Call {
+// NewCall returns a new instance of Call.
+func NewCall(r *http.Request, RequestType string) *Call {
 	return &Call{
 		r,
 		RequestType,
@@ -50,8 +50,8 @@ type Data struct {
 	Error      error
 }
 
-// NewCrawlerData returns a new instance of Data
-func NewCrawlerData(t *attributes.Tag, call *Call, data string, foundCalls []*Call, err error) *Data {
+// NewData returns a new instance of Data
+func NewData(t *attributes.Tag, call *Call, data string, foundCalls []*Call, err error) *Data {
 	return &Data{
 		t,
 		call,

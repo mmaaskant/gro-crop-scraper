@@ -69,6 +69,10 @@ func (cm *Manager) crawl(p *supervisor.Publisher, d any, rch chan any) {
 		log.Fatalf("Scraper Crawl() expected instance of %s, got %s", "*crawlerJob", reflect.TypeOf(d))
 	}
 	cd := cj.c.Crawl(cj.call)
+	if cd.Error != nil {
+		log.Printf("Crawler data contains error %s, skipping ...", cd.Error)
+		return
+	}
 	for _, foundCall := range cd.FoundCalls {
 		p.Publish(newCrawlerJob(cj.c, foundCall))
 	}
@@ -77,7 +81,7 @@ func (cm *Manager) crawl(p *supervisor.Publisher, d any, rch chan any) {
 			"origin":  cd.GetOrigin(),
 			"data_id": cd.GetDataId(),
 			"url":     cd.Call.Request.URL.String(),
-			"html":    cd.Data,
+			"data":    cd.Data,
 		}))
 		if err != nil {
 			log.Printf("Scraper failed to insert crawled HTML, error: %s", err)

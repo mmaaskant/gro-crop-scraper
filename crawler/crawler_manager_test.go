@@ -17,7 +17,7 @@ var expected = map[string]*database.Entity{
 			"origin":     "test",
 			"data_id":    "test_html",
 			"url":        "http://localhost:8080/extract-1.html/",
-			"html":       nil,
+			"data":       nil,
 			"created_at": nil,
 			"updated_at": nil,
 		},
@@ -29,7 +29,7 @@ var expected = map[string]*database.Entity{
 			"origin":     "test",
 			"data_id":    "test_html",
 			"url":        "http://localhost:8080/extract-2.html/",
-			"html":       nil,
+			"data":       nil,
 			"created_at": nil,
 			"updated_at": nil,
 		},
@@ -47,7 +47,7 @@ func TestManager_Start(t *testing.T) {
 	c.SetOrigin("test")
 	c.AddDiscoveryUrlRegex(fmt.Sprintf(`(https?:\/\/)?%s\/?discovery-(\d*)(\.html)\/?`, url))
 	c.AddExtractUrlRegex(fmt.Sprintf(`(https?:\/\/)?%s\/?extract-(\d*)(\.html)\/?`, url))
-	m.RegisterCrawler(c, []*Call{NewCrawlerCall(
+	m.RegisterCrawler(c, []*Call{NewCall(
 		NewRequest(http.MethodGet, fmt.Sprintf("http://%s/", url), nil),
 		DiscoverRequestType,
 	)})
@@ -60,7 +60,7 @@ func TestManager_Start(t *testing.T) {
 		ex := expected[fmt.Sprint(e.Data["url"])]
 		ex.Id = e.Id
 		ex.Data["_id"] = e.Data["_id"]
-		ex.Data["html"] = e.Data["html"]
+		ex.Data["data"] = e.Data["data"]
 		ex.CreatedAt = e.CreatedAt
 		ex.Data["created_at"] = e.Data["created_at"]
 		if e.Id == nil {
@@ -78,8 +78,8 @@ func TestManager_Start(t *testing.T) {
 		if e.UpdatedAt != nil {
 			t.Errorf("Entity %v has an updated_at timestamp, expected nil.", e)
 		}
-		if e.Data["html"] == nil {
-			t.Errorf("Entity %v does not have html.", e)
+		if e.Data["data"] == nil {
+			t.Errorf("Entity %v does not have data.", e)
 		}
 		if !reflect.DeepEqual(*e, *ex) {
 			t.Errorf("Got entity %v, expected: %v", e, ex)
