@@ -72,11 +72,11 @@ func (cm *Manager) crawl(p *supervisor.Publisher, d any, rch chan any) {
 	for _, foundCall := range cd.FoundCalls {
 		p.Publish(newCrawlerJob(cj.c, foundCall))
 	}
-	if cj.call.UrlType == ExtractUrlType {
+	if cj.call.RequestType == ExtractRequestType {
 		err := cm.db.InsertOne(database.NewEntity(database.DbScrapedDataTableName, map[string]any{
 			"origin":  cd.GetOrigin(),
 			"data_id": cd.GetDataId(),
-			"url":     cd.Call.Url,
+			"url":     cd.Call.Request.URL.String(),
 			"html":    cd.Data,
 		}))
 		if err != nil {

@@ -2,13 +2,11 @@ package crawler
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/mmaaskant/gro-crop-scraper/attributes"
 	"golang.org/x/net/html"
 	"io"
 	"log"
 	"net/http"
-	netUrl "net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -38,12 +36,12 @@ func NewHtmlCrawler(id string, c *http.Client) *HtmlCrawler {
 
 // AddDiscoveryUrlRegex registers a new regex expression that is used to match URLs that should be collected for discovery.
 func (hc *HtmlCrawler) AddDiscoveryUrlRegex(expr string) {
-	hc.addRegex(expr, DiscoverUrlType)
+	hc.addRegex(expr, DiscoverRequestType)
 }
 
 // AddExtractUrlRegex registers a new regex expression that is used to match URLs that should be collected for extraction.
 func (hc *HtmlCrawler) AddExtractUrlRegex(expr string) {
-	hc.addRegex(expr, ExtractUrlType)
+	hc.addRegex(expr, ExtractRequestType)
 }
 
 // addRegex registers a new regex expression in HtmlCrawler.
@@ -57,38 +55,38 @@ func (hc *HtmlCrawler) addRegex(expr string, t string) {
 
 // Crawl crawls the given call and returns the data and urls it has found while doing so.
 func (hc *HtmlCrawler) Crawl(c *Call) *Data {
-	b, err := hc.get(c.Url)
+	b, err := hc.do(c.Request)
 	if err != nil {
-		log.Printf("Failed to crawl url: %s, error: %s", c.Url, err)
+		log.Printf("Failed to crawl url: %s, error: %s", c.URL.String(), err)
 		return NewCrawlerData(hc.Tag, c, "", nil, err)
 	}
 	calls := hc.findCalls(b)
 	return NewCrawlerData(hc.Tag, c, b, calls, err)
 }
 
-// get requests data from the given url, cleans it by unescapes it and completing any found partial urls.
-func (hc *HtmlCrawler) get(url string) (string, error) {
-	r, err := hc.client.Get(url)
+// do calls the provided http.Request, cleans it by unescaping its body completing any found partial urls.
+func (hc *HtmlCrawler) do(req *http.Request) (string, error) {
+	resp, err := hc.client.Do(req)
 	if err != nil {
-		log.Printf("Failed to GET url: %s, error: %s", url, err)
+		log.Printf("Failed to call url: %s, error: %s", req.URL.String(), err)
 		return "", err
 	}
-	b, err := io.ReadAll(r.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("Failed to format body %v, error: %s", b, err)
 		return "", err
 	}
-	return hc.clean(url, string(b))
+	return hc.clean(req, string(b))
 }
 
 // clean unescapes the given HTML it and completes any found partial urls.
-func (hc *HtmlCrawler) clean(url string, b string) (string, error) {
+func (hc *HtmlCrawler) clean(r *http.Request, b string) (string, error) {
 	n, err := html.Parse(strings.NewReader(b))
 	if err != nil {
 		log.Printf("Failed to parse HTML %s, error: %s", b, err)
 		return "", err
 	}
-	hc.formatUrl(url, n)
+	hc.formatUrls(r, n)
 	buf := new(bytes.Buffer)
 	err = html.Render(buf, n)
 	if err != nil {
@@ -98,26 +96,19 @@ func (hc *HtmlCrawler) clean(url string, b string) (string, error) {
 	return html.UnescapeString(buf.String()), err
 }
 
-// findCalls uses the provided regex to find urls and categorises them under either DiscoverUrlType or ExtractUrlType.
+// findCalls uses the provided regex to find urls and categorises them under either DiscoverRequestType or ExtractRequestType.
 func (hc *HtmlCrawler) findCalls(b string) []*Call {
 	b = strings.Replace(b, "\\", "", -1)
-	urls := make([]*Call, 0)
+	calls := make([]*Call, 0)
 	for r, t := range hc.regex {
 		for _, url := range r.FindAllString(b, -1) {
 			if hc.hasRegisteredUrl(url) {
 				hc.registerUrl(url, t)
-				urls = append(urls, NewCrawlerCall(url, t, http.MethodGet, nil, nil))
+				calls = append(calls, NewCrawlerCall(NewRequest(http.MethodGet, url, nil), t))
 			}
 		}
 	}
-	return urls
-}
-
-// registerUrl registers a new url in HtmlCrawler, preventing it from being visited again.
-func (hc *HtmlCrawler) registerUrl(url string, t string) {
-	hc.mutex.Lock()
-	defer hc.mutex.Unlock()
-	hc.urlRegistry[url] = t
+	return calls
 }
 
 // hasRegisteredUrl checks if an url has been registered already and returns a bool accordingly.
@@ -128,45 +119,29 @@ func (hc *HtmlCrawler) hasRegisteredUrl(url string) bool {
 	return !ok
 }
 
-// formatUrl seeks out all href html attributes and if they are partial links will append
-// either the current Call's base url or current url based on its format.
-func (hc *HtmlCrawler) formatUrl(url string, n *html.Node) {
-	url = hc.cleanUrl(url)
+// registerUrl registers a new url in HtmlCrawler, preventing it from being visited again.
+func (hc *HtmlCrawler) registerUrl(url string, t string) {
+	hc.mutex.Lock()
+	defer hc.mutex.Unlock()
+	hc.urlRegistry[url] = t
+}
+
+// formatUrls seeks out all href html attributes and parses them into full urls if required.
+func (hc *HtmlCrawler) formatUrls(req *http.Request, n *html.Node) {
 	if n.Type == html.ElementNode {
 		for k, attr := range n.Attr {
-			if attr.Key == "href" && attr.Val != "" {
-				if ok, _ := hc.isCompleteUrl(attr.Val); !ok {
-					if attr.Val[0:1] == "/" {
-						attr.Val = hc.getBaseUrl(url) + attr.Val
-					} else if attr.Val[0:1] != "#" {
-						attr.Val = url + attr.Val
-					}
-					n.Attr[k] = attr
+
+			if attr.Key == "href" && len(attr.Val) > 0 && attr.Val[0:1] != "#" {
+				url, err := req.URL.Parse(attr.Val)
+				if err != nil {
+					log.Fatalf("HTML Crawler failed to parse url %s, error: %s", attr.Val, err)
 				}
+				attr.Val = url.String()
+				n.Attr[k] = attr
 			}
 		}
 	}
 	for child := n.FirstChild; child != nil; child = child.NextSibling {
-		hc.formatUrl(url, child)
+		hc.formatUrls(req, child)
 	}
-}
-
-// getBaseUrl extracts the base url from the given url.
-func (hc *HtmlCrawler) getBaseUrl(url string) string {
-	u, _ := netUrl.Parse(url)
-	return fmt.Sprintf("%s://%s", u.Scheme, u.Host)
-}
-
-// cleanUrl makes sure that the provided url ends with "/" so it can be completed without corrupting.
-func (hc *HtmlCrawler) cleanUrl(url string) string {
-	lc := url[len(url)-1:]
-	if lc != "/" {
-		url = url + "/"
-	}
-	return url
-}
-
-// isCompleteUrl checks if the given url is callable or not and returns a bool accordingly.
-func (hc *HtmlCrawler) isCompleteUrl(url string) (bool, error) {
-	return regexp.MatchString(`^(https?://)(\S)*(\.[a-z]{2,5})`, url)
 }

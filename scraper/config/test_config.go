@@ -22,10 +22,7 @@ func newTestHtmlCrawler(url string) (*crawler.HtmlCrawler, []*crawler.Call) {
 	cr.AddDiscoveryUrlRegex(fmt.Sprintf(`(https?:\/\/)?%s\/?discovery-(\d*)(\.html)\/?`, url))
 	cr.AddExtractUrlRegex(fmt.Sprintf(`(https?:\/\/)?%s\/?extract-(\d*)(\.html)\/?`, url))
 	return cr, []*crawler.Call{crawler.NewCrawlerCall(
-		fmt.Sprintf("http://%s/", url),
-		crawler.DiscoverUrlType,
-		http.MethodGet,
-		nil,
-		nil,
+		crawler.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/", url), nil),
+		crawler.DiscoverRequestType,
 	)}
 }

@@ -48,11 +48,8 @@ func TestManager_Start(t *testing.T) {
 	c.AddDiscoveryUrlRegex(fmt.Sprintf(`(https?:\/\/)?%s\/?discovery-(\d*)(\.html)\/?`, url))
 	c.AddExtractUrlRegex(fmt.Sprintf(`(https?:\/\/)?%s\/?extract-(\d*)(\.html)\/?`, url))
 	m.RegisterCrawler(c, []*Call{NewCrawlerCall(
-		fmt.Sprintf("http://%s/", url),
-		DiscoverUrlType,
-		http.MethodGet,
-		nil,
-		nil,
+		NewRequest(http.MethodGet, fmt.Sprintf("http://%s/", url), nil),
+		DiscoverRequestType,
 	)})
 	m.Start(10)
 	entities, err := db.GetMany(database.DbScrapedDataTableName, map[string]any{"origin": "test"})

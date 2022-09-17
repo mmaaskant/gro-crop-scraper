@@ -24,10 +24,7 @@ func newBurpeeHtmlCrawler() (*crawler.HtmlCrawler, []*crawler.Call) {
 	cr.AddDiscoveryUrlRegex(`(https?:\/\/)?www\.burpee\.com\/?(vegetables|flowers|perennials|herbs|fruit)([\w\/-]*)(\?p=\d{1,3})?(&is_scroll=1)?`)
 	cr.AddExtractUrlRegex(`(https?:\/\/)?www\.burpee\.com\/([\w\-]*)(prod\d*.html)(\/)?`)
 	return cr, []*crawler.Call{crawler.NewCrawlerCall(
-		"https://www.burpee.com",
-		crawler.DiscoverUrlType,
-		http.MethodGet,
-		nil,
-		nil,
+		crawler.NewRequest(http.MethodGet, "https://www.burpee.com", nil),
+		crawler.DiscoverRequestType,
 	)}
 }

@@ -1,10 +1,15 @@
 package crawler
 
-import "github.com/mmaaskant/gro-crop-scraper/attributes"
+import (
+	"github.com/mmaaskant/gro-crop-scraper/attributes"
+	"io"
+	"log"
+	"net/http"
+)
 
 const (
-	DiscoverUrlType string = "DISCOVER"
-	ExtractUrlType  string = "EXTRACT"
+	DiscoverRequestType string = "DISCOVER"
+	ExtractRequestType  string = "EXTRACT"
 )
 
 // Crawler crawls any URL and returns an instance of Data containing what it has found.
@@ -15,22 +20,25 @@ type Crawler interface {
 
 // Call contains everything that is required by Crawler to make a request.
 type Call struct {
-	Url     string
-	UrlType string
-	Method  string
-	Headers map[string]string
-	Params  map[string]string
+	*http.Request
+	RequestType string
 }
 
 // NewCrawlerCall returns a new instance of Call.
-func NewCrawlerCall(url string, UrlType string, method string, headers map[string]string, params map[string]string) *Call {
+func NewCrawlerCall(r *http.Request, RequestType string) *Call {
 	return &Call{
-		url,
-		UrlType,
-		method,
-		headers,
-		params,
+		r,
+		RequestType,
 	}
+}
+
+// NewRequest returns a new instance of http.Request and logs a fatal error if it fails.
+func NewRequest(method string, url string, body io.Reader) *http.Request {
+	r, err := http.NewRequest(method, url, body)
+	if err != nil {
+		log.Fatalf("Failed to create crawler HTTP request, error: %s", err)
+	}
+	return r
 }
 
 // Data contains all data that was found by a Crawler.Crawl call, the Call itself, and a collection of found calls.
