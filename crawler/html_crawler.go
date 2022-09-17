@@ -3,6 +3,7 @@ package crawler
 import (
 	"bytes"
 	"fmt"
+	"github.com/mmaaskant/gro-crop-scraper/attributes"
 	"golang.org/x/net/html"
 	"io"
 	"log"
@@ -17,8 +18,7 @@ import (
 // as it uses http.Get() nothing is rendered so data hidden in Javascript/APIs will not be fetched.
 // HtmlCrawler is concurrency safe and keeps a registry of all found urls.
 type HtmlCrawler struct {
-	tag         string
-	origin      string
+	*attributes.Tag
 	client      *http.Client
 	regex       map[*regexp.Regexp]string
 	urlRegistry map[string]string
@@ -26,30 +26,14 @@ type HtmlCrawler struct {
 }
 
 // NewHtmlCrawler returns a new instance of HtmlCrawler and allows http.Client to be configured.
-func NewHtmlCrawler(origin string, client *http.Client) *HtmlCrawler {
+func NewHtmlCrawler(id string, c *http.Client) *HtmlCrawler {
 	return &HtmlCrawler{
-		"",
-		origin,
-		client,
+		attributes.NewTag("", id),
+		c,
 		make(map[*regexp.Regexp]string),
 		make(map[string]string),
 		sync.RWMutex{},
 	}
-}
-
-// GetTag returns HtmlCrawler's tag which is used to identify its data in other processes.
-func (hc *HtmlCrawler) GetTag() string {
-	return hc.tag
-}
-
-// SetTag sets HtmlCrawler's tag which is used to identify its data in other processes.
-func (hc *HtmlCrawler) SetTag(tag string) {
-	hc.tag = tag
-}
-
-// GetOrigin returns HtmlCrawler's origin which shows where the data originates from.
-func (hc *HtmlCrawler) GetOrigin() string {
-	return hc.tag
 }
 
 // AddDiscoveryUrlRegex registers a new regex expression that is used to match URLs that should be collected for discovery.
@@ -62,7 +46,7 @@ func (hc *HtmlCrawler) AddExtractUrlRegex(expr string) {
 	hc.addRegex(expr, ExtractUrlType)
 }
 
-// addRegex registers a new regex expression in HtmlCrawler
+// addRegex registers a new regex expression in HtmlCrawler.
 func (hc *HtmlCrawler) addRegex(expr string, t string) {
 	r, err := regexp.Compile(expr)
 	if err != nil {
@@ -76,10 +60,10 @@ func (hc *HtmlCrawler) Crawl(c *Call) *Data {
 	b, err := hc.get(c.Url)
 	if err != nil {
 		log.Printf("Failed to crawl url: %s, error: %s", c.Url, err)
-		return NewCrawlerData(hc.tag, hc.origin, c, "", nil, err)
+		return NewCrawlerData(hc.Tag, c, "", nil, err)
 	}
 	calls := hc.findCalls(b)
-	return NewCrawlerData(hc.tag, hc.origin, c, b, calls, err)
+	return NewCrawlerData(hc.Tag, c, b, calls, err)
 }
 
 // get requests data from the given url, cleans it by unescapes it and completing any found partial urls.

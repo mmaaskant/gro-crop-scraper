@@ -74,10 +74,10 @@ func (cm *Manager) crawl(p *supervisor.Publisher, d any, rch chan any) {
 	}
 	if cj.call.UrlType == ExtractUrlType {
 		err := cm.db.InsertOne(database.NewEntity(database.DbScrapedDataTableName, map[string]any{
-			"tag":    cd.Tag,
-			"origin": cd.Origin,
-			"url":    cd.Call.Url,
-			"html":   cd.Data,
+			"origin":  cd.GetOrigin(),
+			"data_id": cd.GetDataId(),
+			"url":     cd.Call.Url,
+			"html":    cd.Data,
 		}))
 		if err != nil {
 			log.Printf("Scraper failed to insert crawled HTML, error: %s", err)

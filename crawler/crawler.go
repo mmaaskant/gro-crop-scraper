@@ -1,8 +1,6 @@
 package crawler
 
-import (
-	"github.com/mmaaskant/gro-crop-scraper/attributes"
-)
+import "github.com/mmaaskant/gro-crop-scraper/attributes"
 
 const (
 	DiscoverUrlType string = "DISCOVER"
@@ -12,7 +10,6 @@ const (
 // Crawler crawls any URL and returns an instance of Data containing what it has found.
 type Crawler interface {
 	attributes.Taggable
-	// Crawl crawls using the data in the given Call object and returns whatever data it finds.
 	Crawl(c *Call) *Data
 }
 
@@ -38,8 +35,7 @@ func NewCrawlerCall(url string, UrlType string, method string, headers map[strin
 
 // Data contains all data that was found by a Crawler.Crawl call, the Call itself, and a collection of found calls.
 type Data struct {
-	Tag        string
-	Origin     string
+	*attributes.Tag
 	Call       *Call
 	Data       string
 	FoundCalls []*Call
@@ -47,10 +43,9 @@ type Data struct {
 }
 
 // NewCrawlerData returns a new instance of Data
-func NewCrawlerData(tag string, origin string, call *Call, data string, foundCalls []*Call, err error) *Data {
+func NewCrawlerData(t *attributes.Tag, call *Call, data string, foundCalls []*Call, err error) *Data {
 	return &Data{
-		tag,
-		origin,
+		t,
 		call,
 		data,
 		foundCalls,

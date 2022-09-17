@@ -16,7 +16,7 @@ func TestScraper_Start(t *testing.T) {
 	s := NewScraper(db)
 	s.RegisterConfig(config.NewTestConfig(url))
 	s.Start()
-	err = db.DeleteMany(database.DbScrapedDataTableName, map[string]any{"tag": "test"})
+	err = db.DeleteMany(database.DbScrapedDataTableName, map[string]any{"origin": "test"})
 	if err != nil {
 		t.Errorf("Failed to tear down test data, error: %s", err)
 	}

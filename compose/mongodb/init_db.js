@@ -1,5 +1,6 @@
 db.scraped_data.drop()
 db.scraped_data.createIndex({ url: 1 }, { unique: true })
-db.scraped_data.createIndex({ tag: 1 })
+db.scraped_data.createIndex({ origin: 1 })
+db.scraped_data.createIndex({ data_id: 1 })
 db.scraped_data.createIndex({ created_at: 1 })
 db.scraped_data.createIndex({ updated_at: 1 })

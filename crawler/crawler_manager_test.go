@@ -14,8 +14,8 @@ var expected = map[string]*database.Entity{
 		database.DbScrapedDataTableName,
 		map[string]any{
 			"_id":        nil,
-			"tag":        "test",
-			"origin":     "test_html",
+			"origin":     "test",
+			"data_id":    "test_html",
 			"url":        "http://localhost:8080/extract-1.html/",
 			"html":       nil,
 			"created_at": nil,
@@ -26,8 +26,8 @@ var expected = map[string]*database.Entity{
 		database.DbScrapedDataTableName,
 		map[string]any{
 			"_id":        nil,
-			"tag":        "test",
-			"origin":     "test_html",
+			"origin":     "test",
+			"data_id":    "test_html",
 			"url":        "http://localhost:8080/extract-2.html/",
 			"html":       nil,
 			"created_at": nil,
@@ -44,7 +44,7 @@ func TestManager_Start(t *testing.T) {
 	}
 	m := NewCrawlerManager(db)
 	c := NewHtmlCrawler("test_html", &http.Client{})
-	c.tag = "test"
+	c.SetOrigin("test")
 	c.AddDiscoveryUrlRegex(fmt.Sprintf(`(https?:\/\/)?%s\/?discovery-(\d*)(\.html)\/?`, url))
 	c.AddExtractUrlRegex(fmt.Sprintf(`(https?:\/\/)?%s\/?extract-(\d*)(\.html)\/?`, url))
 	m.RegisterCrawler(c, []*Call{NewCrawlerCall(
@@ -55,7 +55,7 @@ func TestManager_Start(t *testing.T) {
 		nil,
 	)})
 	m.Start(10)
-	entities, err := db.GetMany(database.DbScrapedDataTableName, map[string]any{"tag": "test"})
+	entities, err := db.GetMany(database.DbScrapedDataTableName, map[string]any{"origin": "test"})
 	if err != nil {
 		t.Errorf("Failed to fetch results from DB, error: %s", err)
 	}
@@ -69,11 +69,11 @@ func TestManager_Start(t *testing.T) {
 		if e.Id == nil {
 			t.Errorf("Entity %v does not have an ID.", e)
 		}
-		if e.Data["tag"] == nil {
-			t.Errorf("Entity %v does not have a tag.", e)
-		}
 		if e.Data["origin"] == nil {
 			t.Errorf("Entity %v does not have an origin.", e)
+		}
+		if e.Data["data_id"] == nil {
+			t.Errorf("Entity %v does not have an data id.", e)
 		}
 		if e.CreatedAt == nil {
 			t.Errorf("Entity %v does not have a created_at timestamp.", e)
@@ -88,7 +88,7 @@ func TestManager_Start(t *testing.T) {
 			t.Errorf("Got entity %v, expected: %v", e, ex)
 		}
 	}
-	err = db.DeleteMany(database.DbScrapedDataTableName, map[string]any{"tag": "test"})
+	err = db.DeleteMany(database.DbScrapedDataTableName, map[string]any{"origin": "test"})
 	if err != nil {
 		t.Errorf("Failed to tear down test data, error: %s", err)
 	}

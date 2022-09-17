@@ -7,18 +7,18 @@ import (
 )
 
 const (
-	ScraperConfigTestTag        = "test"
-	ScraperConfigTestHtmlOrigin = "test_html"
+	ScraperConfigTestOrigin     = "test"
+	ScraperConfigTestHtmlDataId = "test_html"
 )
 
 func NewTestConfig(testServerUrl string) *Config {
-	c := newConfig(ScraperConfigTestTag)
+	c := newConfig(ScraperConfigTestOrigin)
 	c.AddCrawler(newTestHtmlCrawler(testServerUrl))
 	return c
 }
 
 func newTestHtmlCrawler(url string) (*crawler.HtmlCrawler, []*crawler.Call) {
-	cr := crawler.NewHtmlCrawler(ScraperConfigTestHtmlOrigin, &http.Client{})
+	cr := crawler.NewHtmlCrawler(ScraperConfigTestHtmlDataId, &http.Client{})
 	cr.AddDiscoveryUrlRegex(fmt.Sprintf(`(https?:\/\/)?%s\/?discovery-(\d*)(\.html)\/?`, url))
 	cr.AddExtractUrlRegex(fmt.Sprintf(`(https?:\/\/)?%s\/?extract-(\d*)(\.html)\/?`, url))
 	return cr, []*crawler.Call{crawler.NewCrawlerCall(

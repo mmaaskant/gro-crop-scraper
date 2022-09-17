@@ -51,7 +51,7 @@ func TestMongoDbDriver_Many(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to update multiple rows in DB, error: %s", err)
 	}
-	entities, err := db.GetMany(DbScrapedDataTableName, map[string]any{"tag": "test"})
+	entities, err := db.GetMany(DbScrapedDataTableName, map[string]any{"origin": "test"})
 	for _, entity := range entities {
 		if entity.UpdatedAt == nil {
 			t.Errorf("Entity %v UpdatedAt is nil, expected timestamp.", entity)
@@ -60,7 +60,7 @@ func TestMongoDbDriver_Many(t *testing.T) {
 			t.Errorf("Entity %v data.updated is %v, expected: %v", entity, entity.Data["updated"], true)
 		}
 	}
-	err = db.DeleteMany(DbScrapedDataTableName, map[string]any{"tag": "test"})
+	err = db.DeleteMany(DbScrapedDataTableName, map[string]any{"origin": "test"})
 	if err != nil {
 		t.Errorf("Failed to delete multiple rows in DB, error: %s", err)
 	}
@@ -77,6 +77,6 @@ func newDb(t *testing.T) *Db {
 func newScrapedHtmlEntity(url string) *Entity {
 	return NewEntity(
 		DbScrapedDataTableName,
-		map[string]any{"url": url, "tag": "test", "origin": "test_html", "updated": false},
+		map[string]any{"url": url, "origin": "test", "data_id": "test_html", "updated": false},
 	)
 }
