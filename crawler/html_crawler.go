@@ -14,7 +14,7 @@ import (
 )
 
 // HtmlCrawler crawls http(s) urls and returns their raw HTML,
-// as it uses http.Get() nothing is rendered so data hidden in Javascript/APIs will not be fetched.
+// as it uses http.Client.Do() nothing is rendered so data hidden in Javascript/APIs will not be fetched.
 // HtmlCrawler is concurrency safe and keeps a registry of all found urls.
 type HtmlCrawler struct {
 	*attributes.Tag
@@ -71,7 +71,7 @@ func (hc *HtmlCrawler) Crawl(c *Call) *Data {
 	return NewData(hc.Tag, c, b, calls, err)
 }
 
-// do calls the provided http.Request, cleans it by unescaping its body completing any found partial urls.
+// do calls the provided http.Request and cleans it by unescaping its body completing any found partial urls.
 func (hc *HtmlCrawler) do(req *http.Request) (string, error) {
 	resp, err := hc.client.Do(req)
 	if err != nil {
@@ -152,7 +152,8 @@ func (hc *HtmlCrawler) formatUrls(req *http.Request, n *html.Node) {
 	}
 }
 
-// TODO: Add comment
+// formatHiddenUrls find any HTML href attributes that are not directly attached to any HTML tags,
+// in places like scripts, other attributes, etc. These are then replaced with fully parsed URLs.
 func (hc *HtmlCrawler) formatHiddenUrls(req *http.Request, b string) string {
 	for _, href := range hc.hrefRegex.FindAllString(b, -1) {
 		ref := strings.Trim(href, `href="`)

@@ -12,6 +12,8 @@ import (
 //go:embed html
 var html embed.FS
 
+// StartTestHttpServer starts a net/http server and offers files stored in ~/test/httpserver/html/,
+// these files contain both urls that can de discovered and extracted within tests.
 func StartTestHttpServer(t *testing.T) (baseUrl string) {
 	fSys, err := fs.Sub(html, "html")
 	if err != nil {

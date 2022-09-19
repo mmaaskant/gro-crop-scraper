@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/mmaaskant/gro-crop-scraper/crawler"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -29,4 +30,48 @@ func newBurpeeHtmlCrawler() (*crawler.HtmlCrawler, []*crawler.Call) {
 		crawler.NewRequest(http.MethodGet, "https://www.burpee.com", nil),
 		crawler.DiscoverRequestType,
 	)}
+}
+
+// newBurpeeZonesCrawler returns an instance of crawler.HtmlCrawler configured to scrape
+// the Burpee growing zone and crop category attribute API.
+func newBurpeeZonesCrawler() (*crawler.RestCrawler, []*crawler.Call) {
+	calls := make([]*crawler.Call, 0)
+	for _, r := range getGrowingZoneRequests() {
+		c := crawler.NewCall(r, crawler.ExtractRequestType)
+		calls = append(calls, c)
+	}
+	cr := crawler.NewRestCrawler(ScraperConfigBurpeeZonesDataId, &http.Client{Timeout: 30 * time.Second})
+	return cr, calls
+}
+
+// getGrowingZoneRequests compiles a slice of http.Request for each growing zone that is available
+// within the Burpee API.
+func getGrowingZoneRequests() []*http.Request {
+	requests := make([]*http.Request, 0)
+	for _, zip := range getGrowingZoneZipcodes() {
+		r := crawler.NewRequest(http.MethodGet, "https://www.burpee.com/location/index/index", nil)
+		d := url.Values{"zipcode": []string{zip}}
+		r.URL.RawQuery = d.Encode()
+		requests = append(requests, r)
+	}
+	return requests
+}
+
+// getGrowingZoneZipcodes returns a map of growing zones and a zipcode within said zone.
+func getGrowingZoneZipcodes() map[int]string {
+	return map[int]string{
+		1:  "99722",
+		2:  "99731",
+		3:  "99736",
+		4:  "59317",
+		5:  "57785",
+		6:  "97867",
+		7:  "98815",
+		8:  "98589",
+		9:  "70517",
+		10: "34104",
+		11: "33037",
+		12: "96778",
+		13: "96863",
+	}
 }
