@@ -4,7 +4,7 @@ import "time"
 
 // Driver holds functions to communicate with a database in a streamlined fashion,
 // and is meant to be interchangeable so databases types can be easily switched if required.
-// Driver currently does not support Context.
+// Driver currently does not support context.Context.
 type Driver interface {
 	connect() error
 	GetOne(table string, params map[string]any) (*Entity, error)
@@ -27,7 +27,6 @@ type Entity struct {
 	UpdatedAt *time.Time
 }
 
-// NewEntity Returns a new instance of *Entity and is primarily for inserts.
 func NewEntity(table string, data map[string]any) *Entity {
 	return &Entity{
 		Id:        nil,

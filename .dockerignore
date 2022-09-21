@@ -1,5 +1,6 @@
 # Ignore hidden directories and generic files
 .idea
+.git
 .gitignore
 LICENSE
 README.md

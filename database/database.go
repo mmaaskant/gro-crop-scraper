@@ -1,16 +1,15 @@
 package database
 
-// TODO: Implement context? https://github.com/mongodb/mongo-go-driver/blob/master/examples/documentation_examples/examples_test.go
+const ScrapedDataTableName = "scraped_data"
 
-const DbScrapedDataTableName = "scraped_data"
-
-// Db is a facade that holds an instance of Driver and forwards its functions.
+// Db is a facade that holds an instance of Driver and forwards its functions,
 // Driver is interchangeable and allows the changing of database types.
+// Db currently does not support context.Context.
 type Db struct {
 	Driver
 }
 
-// NewDb creates a new Db instance and attempts to connect the Driver to its database.
+// NewDb creates a new Db instance and attempts to connect the Driver to its database and
 // Return an error in case connecting fails.
 func NewDb(d Driver) (*Db, error) {
 	err := d.connect()

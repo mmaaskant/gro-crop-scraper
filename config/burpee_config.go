@@ -2,31 +2,37 @@ package config
 
 import (
 	"github.com/mmaaskant/gro-crop-scraper/crawler"
+	"github.com/mmaaskant/gro-crop-scraper/scraper"
 	"net/http"
 	"net/url"
 	"time"
 )
 
 const (
-	ScraperConfigBurpeeOrigin      = "burpee"
-	ScraperConfigBurpeeHtmlDataId  = "burpee_html"
-	ScraperConfigBurpeeZonesDataId = "burpee_zones"
+	BurpeeConfigId      = "burpee"
+	BurpeeHtmlScraperId = "burpee_html"
+	BurpeeZoneScraperId = "burpee_zones"
 )
 
-// NewBurpeeConfig returns a new instance of *Config holding all components required to scrape the Burpee supplier sources.
+// NewBurpeeConfig holds components configured to scrape https://burpee.com.
 func NewBurpeeConfig() *Config {
-	c := newConfig(ScraperConfigBurpeeOrigin)
-	c.AddCrawler(newBurpeeHtmlCrawler())
+	c := newConfig(BurpeeConfigId)
+	c.AddScraper(BurpeeHtmlScraperId, scraper.NewScraper(newBurpeeHtmlCrawler(), getBurpeeHtmlCrawlerCalls(), nil))
+	c.AddScraper(BurpeeZoneScraperId, scraper.NewScraper(newBurpeeZonesCrawler(), getBurpeeZonesCrawlerCalls(), nil))
 	return c
 }
 
 // newBurpeeHtmlCrawler returns an instance of crawler.HtmlCrawler configured to scrape
 // the Burpee website and a slice of crawler.Call instances to kick off the crawling process.
-func newBurpeeHtmlCrawler() (*crawler.HtmlCrawler, []*crawler.Call) {
-	cr := crawler.NewHtmlCrawler(ScraperConfigBurpeeHtmlDataId, &http.Client{Timeout: 90 * time.Second})
+func newBurpeeHtmlCrawler() *crawler.HtmlCrawler {
+	cr := crawler.NewHtmlCrawler(&http.Client{Timeout: 90 * time.Second})
 	cr.AddDiscoveryUrlRegex(`(https?:\/\/)?www\.burpee\.com\/?(vegetables|flowers|perennials|herbs|fruit)([\w\/-]*)(\?p=\d{1,3})?(&is_scroll=1)?`)
 	cr.AddExtractUrlRegex(`(https?:\/\/)?www\.burpee\.com\/([\w\-]*)(prod\d*.html)(\/)?`)
-	return cr, []*crawler.Call{crawler.NewCall(
+	return cr
+}
+
+func getBurpeeHtmlCrawlerCalls() []*crawler.Call {
+	return []*crawler.Call{crawler.NewCall(
 		crawler.NewRequest(http.MethodGet, "https://www.burpee.com", nil),
 		crawler.DiscoverRequestType,
 	)}
@@ -34,14 +40,18 @@ func newBurpeeHtmlCrawler() (*crawler.HtmlCrawler, []*crawler.Call) {
 
 // newBurpeeZonesCrawler returns an instance of crawler.HtmlCrawler configured to scrape
 // the Burpee growing zone and crop category attribute API.
-func newBurpeeZonesCrawler() (*crawler.RestCrawler, []*crawler.Call) {
+func newBurpeeZonesCrawler() *crawler.RestCrawler {
+	cr := crawler.NewRestCrawler(&http.Client{Timeout: 30 * time.Second})
+	return cr
+}
+
+func getBurpeeZonesCrawlerCalls() []*crawler.Call {
 	calls := make([]*crawler.Call, 0)
 	for _, r := range getGrowingZoneRequests() {
 		c := crawler.NewCall(r, crawler.ExtractRequestType)
 		calls = append(calls, c)
 	}
-	cr := crawler.NewRestCrawler(ScraperConfigBurpeeZonesDataId, &http.Client{Timeout: 30 * time.Second})
-	return cr, calls
+	return calls
 }
 
 // getGrowingZoneRequests compiles a slice of http.Request for each growing zone that is available
@@ -57,6 +67,7 @@ func getGrowingZoneRequests() []*http.Request {
 	return requests
 }
 
+// TODO: Should these be pulled from a file instead?
 // getGrowingZoneZipcodes returns a map of growing zones and a zipcode within said zone.
 func getGrowingZoneZipcodes() map[int]string {
 	return map[int]string{

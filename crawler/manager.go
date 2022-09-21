@@ -14,8 +14,7 @@ type Manager struct {
 	crawlers map[Crawler][]*Call
 }
 
-// NewCrawlerManager returns a new instance of CrawlerManager.
-func NewCrawlerManager(db *database.Db) *Manager {
+func NewManager(db *database.Db) *Manager {
 	return &Manager{
 		db,
 		make(map[Crawler][]*Call),
@@ -24,36 +23,32 @@ func NewCrawlerManager(db *database.Db) *Manager {
 
 // crawlerJob holds a Crawler and a Call and is used to pass on units of work to Manager's workers.
 type crawlerJob struct {
-	c    Crawler
-	call *Call
+	crawler Crawler
+	call    *Call
 }
 
-// newCrawlerJob returns a new instance of crawlerJob.
 func newCrawlerJob(c Crawler, call *Call) *crawlerJob {
 	return &crawlerJob{
-		c:    c,
-		call: call,
+		crawler: c,
+		call:    call,
 	}
 }
 
-// RegisterCrawlers registers multiple Crawler instances using RegisterCrawler.
-func (cm *Manager) RegisterCrawlers(crawlers map[Crawler][]*Call) {
+func (m *Manager) RegisterCrawlers(crawlers map[Crawler][]*Call) {
 	for c, calls := range crawlers {
-		cm.RegisterCrawler(c, calls)
+		m.RegisterCrawler(c, calls)
 	}
 }
 
-// RegisterCrawler registers a new Crawler within crawler.CrawlerManager,
-// provided crawler.Call instances will be crawled once scraper starts.
-func (cm *Manager) RegisterCrawler(c Crawler, calls []*Call) {
-	cm.crawlers[c] = calls
+func (m *Manager) RegisterCrawler(c Crawler, calls []*Call) {
+	m.crawlers[c] = calls
 }
 
 // Start begins crawling using the provided Crawler and Call instances,
 // a supervisor.Supervisor instance is used to crawl concurrently.
-func (cm *Manager) Start(amountOfWorkers int) {
-	sv, p, _ := helper.StartSupervisor(amountOfWorkers, cm.crawl)
-	for c, calls := range cm.crawlers {
+func (m *Manager) Start(amountOfWorkers int) {
+	sv, p, _ := helper.StartSupervisor(amountOfWorkers, m.crawl)
+	for c, calls := range m.crawlers {
 		for _, call := range calls {
 			p.Publish(newCrawlerJob(c, call))
 		}
@@ -63,25 +58,25 @@ func (cm *Manager) Start(amountOfWorkers int) {
 
 // crawl receives crawlerJob instances and handles them,
 // this function is registered within supervisor.Supervisor as a worker.
-func (cm *Manager) crawl(p *supervisor.Publisher, d any, rch chan any) {
+func (m *Manager) crawl(p *supervisor.Publisher, d any, rch chan any) {
 	cj, ok := d.(*crawlerJob)
 	if !ok {
-		log.Fatalf("Scraper Crawl() expected instance of %s, got %s", "*crawlerJob", reflect.TypeOf(d))
+		log.Fatalf("Expected instance of %s, got %s", "*crawlerJob", reflect.TypeOf(d))
 	}
-	cd := cj.c.Crawl(cj.call)
+	cd := cj.crawler.Crawl(cj.call)
 	if cd.Error != nil {
 		log.Printf("Crawler data contains error %s, skipping ...", cd.Error)
 		return
 	}
 	for _, foundCall := range cd.FoundCalls {
-		p.Publish(newCrawlerJob(cj.c, foundCall))
+		p.Publish(newCrawlerJob(cj.crawler, foundCall))
 	}
 	if cj.call.RequestType == ExtractRequestType {
-		err := cm.db.InsertOne(database.NewEntity(database.DbScrapedDataTableName, map[string]any{
-			"origin":  cd.GetOrigin(),
-			"data_id": cd.GetDataId(),
-			"url":     cd.Call.Request.URL.String(),
-			"data":    cd.Data,
+		err := m.db.InsertOne(database.NewEntity(database.ScrapedDataTableName, map[string]any{
+			"config_id":  cd.GetConfigId(),
+			"scraper_id": cd.GetScraperId(),
+			"url":        cd.Call.Request.URL.String(),
+			"data":       cd.Data,
 		}))
 		if err != nil {
 			log.Printf("Scraper failed to insert crawled HTML, error: %s", err)

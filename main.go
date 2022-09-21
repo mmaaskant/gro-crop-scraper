@@ -1,24 +1,25 @@
 package main
 
 import (
+	"github.com/mmaaskant/gro-crop-scraper/config"
 	"github.com/mmaaskant/gro-crop-scraper/database"
 	"github.com/mmaaskant/gro-crop-scraper/scraper"
-	"github.com/mmaaskant/gro-crop-scraper/scraper/config"
 	"log"
 )
 
-// main gets all registered configs and filters them accordingly based on the given flags,
-// filters are provided as command flags in the format "--<origin_name>".
-// If no filters are provided, all configs are ran through an instance of scraper.Scraper.
+// main gets all configs and their steps and filters them based on the given flags.
+// Config filters are provided as command flags in the format" "--<config_name>",
+// Step filters are provided as command flags in the format: "--<step_name>".
+// If no filters are provided, all configs and their steps will be executed.
 func main() {
 	db, err := database.NewDb(database.NewMongoDbDriver())
 	if err != nil {
 		log.Fatalf("Failed to connect to database, error: %s", err)
 	}
-	s := scraper.NewScraper(db)
-	configs := config.GetRegisteredConfigs()
+	sm := scraper.NewManager(db)
+	configs := config.GetConfigs()
 	for _, c := range configs {
-		s.RegisterConfig(c)
+		sm.RegisterScrapers(c.Scrapers)
 	}
-	s.Start()
+	sm.Start()
 }

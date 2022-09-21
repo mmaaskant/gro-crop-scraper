@@ -12,19 +12,20 @@ const (
 	ExtractRequestType  string = "EXTRACT"
 )
 
-// Crawler crawls any URL and returns an instance of Data containing what it has found.
+// Crawler crawls any URL and returns Data containing what it has found,
+// it also implements attributes.Taggable allowing it to tag said Data.
 type Crawler interface {
 	attributes.Taggable
 	Crawl(c *Call) *Data
 }
 
-// Call contains everything that is required by Crawler to make a request.
+// Call wraps around a http.Request and adds a RequestType which should be either DiscoverRequestType or ExtractRequestType.
+// In which the former will be used only to discover new URLs, and the latter will be stored locally for further processing.
 type Call struct {
 	*http.Request
 	RequestType string
 }
 
-// NewCall returns a new instance of Call.
 func NewCall(r *http.Request, RequestType string) *Call {
 	return &Call{
 		r,
@@ -32,7 +33,6 @@ func NewCall(r *http.Request, RequestType string) *Call {
 	}
 }
 
-// NewRequest returns a new instance of http.Request and logs a fatal error if it fails.
 func NewRequest(method string, url string, body io.Reader) *http.Request {
 	r, err := http.NewRequest(method, url, body)
 	if err != nil {
@@ -50,7 +50,6 @@ type Data struct {
 	Error      error
 }
 
-// NewData returns a new instance of Data
 func NewData(t *attributes.Tag, call *Call, data string, foundCalls []*Call, err error) *Data {
 	return &Data{
 		t,

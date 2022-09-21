@@ -14,11 +14,15 @@ type RestCrawler struct {
 }
 
 // NewRestCrawler returns a new instance of RestCrawler.
-func NewRestCrawler(id string, c *http.Client) *RestCrawler {
+func NewRestCrawler(c *http.Client) *RestCrawler {
 	return &RestCrawler{
-		attributes.NewTag("", id),
+		nil,
 		c,
 	}
+}
+
+func (rc *RestCrawler) SetTag(t *attributes.Tag) {
+	rc.Tag = t
 }
 
 // Crawl starts crawling based on the given Call instance and returns a Data instance
