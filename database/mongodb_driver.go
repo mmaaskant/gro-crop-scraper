@@ -43,7 +43,7 @@ func (mdd *MongoDbDriver) GetOne(table string, params map[string]any) (*Entity, 
 	return e, err
 }
 
-func (mdd *MongoDbDriver) GetMany(table string, params map[string]any, limit ...int) ([]*Entity, error) {
+func (mdd *MongoDbDriver) GetMany(table string, params map[string]any, limit ...int) ([]*Entity, error) { // TODO: Should support batches/an iterator to prevent heavy load on memory
 	opts := options.FindOptions{}
 	if len(limit) > 0 {
 		l := int64(limit[0])
@@ -89,9 +89,15 @@ func (mdd *MongoDbDriver) convertToTime(v any) *time.Time {
 	if v == nil {
 		return nil
 	}
+	var pdt primitive.DateTime
 	pdt, ok := v.(primitive.DateTime)
 	if !ok {
-		log.Fatalf("Expected instance of primitive.DateTime while converting to *time.Time, got: %s", reflect.TypeOf(v))
+		log.Fatalf(
+			"Expected instance of %s while converting to %s, got: %s",
+			reflect.TypeOf(pdt),
+			reflect.TypeOf((*time.Time)(nil)),
+			reflect.TypeOf(v),
+		)
 	}
 	t := pdt.Time()
 	return &t

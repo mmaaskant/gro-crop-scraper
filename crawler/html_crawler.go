@@ -26,10 +26,7 @@ type HtmlCrawler struct {
 }
 
 func NewHtmlCrawler(c *http.Client) *HtmlCrawler {
-	r, err := regexp.Compile(`(href="(/?)((\w*)/)*")`)
-	if err != nil {
-		log.Fatalf("Failed to compile HREF urlRegex, error: %s", err)
-	}
+	r, _ := regexp.Compile(`(href="(/?)((\w*)/)*")`)
 	return &HtmlCrawler{
 		nil,
 		c,

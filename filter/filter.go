@@ -6,5 +6,6 @@ import "github.com/mmaaskant/gro-crop-scraper/attributes"
 
 type Filter interface {
 	attributes.Taggable
-	Filter(data string) map[string]any
+	Clone() Filter
+	Filter(s string) map[string]string
 }

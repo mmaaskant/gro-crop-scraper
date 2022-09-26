@@ -10,12 +10,15 @@ services:
       MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
       MONGODB_URI: ${MONGO_INITDB_URI}
       GOPHERVISOR_CRAWLER_WORKER_COUNT: ${GOPHERVISOR_CRAWLER_WORKER_COUNT}
+      GOPHERVISOR_FILTER_WORKER_COUNT: ${GOPHERVISOR_FILTER_WORKER_COUNT}
       HTTP_TEST_SERVER_PORT: ${HTTP_TEST_SERVER_PORT}
     volumes:
       - .:/src/gro-crop-scraper
       - /src/gro-crop-scraper/compose
       - ./dev_vendor:/go/
       - /src/gro-crop-scraper/dev_vendor
+      - /src/gro-crop-scraper/.git
+      - /src/gro-crop-scraper/.idea
     working_dir: /src/gro-crop-scraper
     entrypoint: ./compose/go/entrypoint.sh
     depends_on:

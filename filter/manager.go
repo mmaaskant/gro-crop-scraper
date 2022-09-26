@@ -30,7 +30,7 @@ type filterJob struct {
 
 func newFilterJob(f Filter, e *database.Entity) *filterJob {
 	return &filterJob{
-		f,
+		f.Clone(),
 		e,
 	}
 }
@@ -57,6 +57,9 @@ func (m *Manager) Start(amountOfWorkers int) {
 			}
 			for _, e := range entities {
 				p.Publish(newFilterJob(f, e))
+				if err = m.db.DeleteOne(e); err != nil { // TODO: Entity is inaccessible too early in case it is needed in the future
+					log.Printf("Failed to delete entity %v, error: %s", e, err)
+				}
 			}
 		}
 	}
@@ -64,15 +67,13 @@ func (m *Manager) Start(amountOfWorkers int) {
 }
 
 func (m *Manager) filter(p *supervisor.Publisher, d any, rch chan any) {
+	var fj *filterJob
 	fj, ok := d.(*filterJob)
 	if !ok {
-		log.Fatalf("Expected instance of %s, got %s", "*filterJob", reflect.TypeOf(d))
+		log.Fatalf("Expected instance of %s, got %s", reflect.TypeOf(fj), reflect.TypeOf(d))
 	}
 	if data := fj.filter.Filter(fmt.Sprint(fj.entity.Data["data"])); data != nil && len(data) > 0 {
 		// TODO: Insert filtered data
 		fmt.Println(data)
-	}
-	if err := m.db.DeleteOne(fj.entity); err != nil {
-		log.Printf("Failed to delete entity %v, error: %s", fj.entity, err)
 	}
 }

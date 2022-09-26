@@ -14,7 +14,7 @@ const (
 
 // Crawler crawls any URL and returns Data containing what it has found,
 // it also implements attributes.Taggable allowing it to tag said Data.
-type Crawler interface {
+type Crawler interface { // TODO: Clients should support retries
 	attributes.Taggable
 	Crawl(c *Call) *Data
 }
