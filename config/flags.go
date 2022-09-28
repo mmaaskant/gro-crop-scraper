@@ -69,7 +69,7 @@ func applyFlaggedSteps() {
 func flagToBool(f *flag.Flag) bool {
 	b, err := strconv.ParseBool(f.Value.String())
 	if err != nil {
-		log.Fatalf("Failed to parse config flag into bool, error: %s", err)
+		log.Panicf("Failed to parse config flag into bool, error: %s", err)
 	}
 	return b
 }

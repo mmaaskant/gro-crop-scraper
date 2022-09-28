@@ -53,7 +53,7 @@ func (m *Manager) Start() {
 func (m *Manager) getWorkerCount(env string) int {
 	workerCount, err := strconv.Atoi(os.Getenv(env))
 	if err != nil {
-		log.Fatalf("Could not convert env variable %s with value %v to int",
+		log.Panicf("Could not convert env variable %s with value %v to int",
 			fmt.Sprintf("${%s}", env), os.Getenv(env),
 		)
 	}

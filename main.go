@@ -14,7 +14,7 @@ import (
 func main() {
 	db, err := database.NewDb(database.NewMongoDbDriver())
 	if err != nil {
-		log.Fatalf("Failed to connect to database, error: %s", err)
+		log.Panicf("Failed to connect to database, error: %s", err)
 	}
 	sm := scraper.NewManager(db)
 	configs := config.GetConfigs()

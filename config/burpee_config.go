@@ -2,9 +2,11 @@ package config
 
 import (
 	"github.com/mmaaskant/gro-crop-scraper/crawler"
+	"github.com/mmaaskant/gro-crop-scraper/filter"
 	"github.com/mmaaskant/gro-crop-scraper/scraper"
+	"log"
 	"net/http"
-	"net/url"
+	"reflect"
 	"time"
 )
 
@@ -17,8 +19,7 @@ const (
 // NewBurpeeConfig holds components configured to scrape https://burpee.com.
 func NewBurpeeConfig() *Config {
 	c := newConfig(BurpeeConfigId)
-	c.AddScraper(BurpeeHtmlScraperId, scraper.NewScraper(newBurpeeHtmlCrawler(), getBurpeeHtmlCrawlerCalls(), nil))
-	c.AddScraper(BurpeeZoneScraperId, scraper.NewScraper(newBurpeeZonesCrawler(), getBurpeeZonesCrawlerCalls(), nil))
+	c.AddScraper(BurpeeHtmlScraperId, scraper.NewScraper(newBurpeeHtmlCrawler(), getBurpeeHtmlCrawlerCalls(), getBurpeeHtmlFilter()))
 	return c
 }
 
@@ -38,51 +39,30 @@ func getBurpeeHtmlCrawlerCalls() []*crawler.Call {
 	)}
 }
 
-// newBurpeeZonesCrawler returns an instance of crawler.HtmlCrawler configured to scrape
-// the Burpee growing zone and crop category attribute API.
-func newBurpeeZonesCrawler() *crawler.RestCrawler {
-	cr := crawler.NewRestCrawler(&http.Client{Timeout: 30 * time.Second})
-	return cr
-}
-
-func getBurpeeZonesCrawlerCalls() []*crawler.Call {
-	calls := make([]*crawler.Call, 0)
-	for _, r := range getGrowingZoneRequests() {
-		c := crawler.NewCall(r, crawler.ExtractRequestType)
-		calls = append(calls, c)
-	}
-	return calls
-}
-
-// getGrowingZoneRequests compiles a slice of http.Request for each growing zone that is available
-// within the Burpee API.
-func getGrowingZoneRequests() []*http.Request {
-	requests := make([]*http.Request, 0)
-	for _, zip := range getGrowingZoneZipcodes() {
-		r := crawler.NewRequest(http.MethodGet, "https://www.burpee.com/location/index/index", nil)
-		d := url.Values{"zipcode": []string{zip}}
-		r.URL.RawQuery = d.Encode()
-		requests = append(requests, r)
-	}
-	return requests
-}
-
-// TODO: Should these be pulled from a file instead?
-// getGrowingZoneZipcodes returns a map of growing zones and a zipcode within said zone.
-func getGrowingZoneZipcodes() map[int]string {
-	return map[int]string{
-		1:  "99722",
-		2:  "99731",
-		3:  "99736",
-		4:  "59317",
-		5:  "57785",
-		6:  "97867",
-		7:  "98815",
-		8:  "98589",
-		9:  "70517",
-		10: "34104",
-		11: "33037",
-		12: "96778",
-		13: "96863",
-	}
+func getBurpeeHtmlFilter() *filter.HtmlFilter {
+	cb := filter.NewCriteriaBuilder(
+		filter.NewCriteria(
+			nil,
+			filter.NewHtmlTokenTagInterpreter("div"),
+			filter.NewHtmlTokenAttributeInterpreter("class", "product-add-form"),
+		),
+	)
+	cb.AddChild(filter.NewCriteria(
+		filter.NewHtmlTextExtractor("attributes", func(data map[string]any) map[string]any {
+			attributes, ok := data["attributes"].(string)
+			if !ok {
+				log.Printf("Burpee HTML filter expected %s, got %s", reflect.TypeOf(attributes), reflect.TypeOf(data["attributes"]))
+			}
+			f := filter.NewJsonFilter(
+				filter.NewCriteria(
+					filter.NewKeyValueExtractor("", ""),
+					filter.NewKeyValueInterpreter("(bp_).*|name|description|short_description", ""),
+				),
+			)
+			return f.Filter(attributes)
+		}),
+		filter.NewHtmlTokenTagInterpreter("script"),
+		filter.NewHtmlTokenAttributeInterpreter("type", "text/x-magento-init"),
+	))
+	return filter.NewHtmlFilter(cb.Build())
 }

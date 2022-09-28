@@ -5,6 +5,7 @@ import (
 	"github.com/mmaaskant/gophervisor/supervisor"
 	"github.com/mmaaskant/gro-crop-scraper/database"
 	"github.com/mmaaskant/gro-crop-scraper/helper"
+	"go.mongodb.org/mongo-driver/mongo"
 	"log"
 	"reflect"
 )
@@ -48,19 +49,12 @@ func (m *Manager) RegisterFilter(f Filter) {
 func (m *Manager) Start(amountOfWorkers int) {
 	sv, p, _ := helper.StartSupervisor(amountOfWorkers, m.filter)
 	for _, f := range m.filters {
-		getMany := func() ([]*database.Entity, error) {
-			return m.db.GetMany(database.ScrapedDataTableName, map[string]any{"scraper_id": f.GetScraperId()}, 50)
+		iterator, err := m.db.GetMany(database.ScrapedDataTableName, map[string]any{"scraper_id": f.GetScraperId()})
+		if err != nil {
+			log.Panicf("Failed to initialise iterator, error: %s", err)
 		}
-		for entities, err := getMany(); len(entities) > 0; entities, err = getMany() {
-			if err != nil {
-				log.Printf("Failed to fetch entities from DB table %s, error: %s", database.ScrapedDataTableName, err)
-			}
-			for _, e := range entities {
-				p.Publish(newFilterJob(f, e))
-				if err = m.db.DeleteOne(e); err != nil { // TODO: Entity is inaccessible too early in case it is needed in the future
-					log.Printf("Failed to delete entity %v, error: %s", e, err)
-				}
-			}
+		for e, _ := iterator.Next(); e != nil; e, _ = iterator.Next() {
+			p.Publish(newFilterJob(f, e))
 		}
 	}
 	sv.Shutdown()
@@ -70,10 +64,30 @@ func (m *Manager) filter(p *supervisor.Publisher, d any, rch chan any) {
 	var fj *filterJob
 	fj, ok := d.(*filterJob)
 	if !ok {
-		log.Fatalf("Expected instance of %s, got %s", reflect.TypeOf(fj), reflect.TypeOf(d))
+		log.Panicf("Expected instance of %s, got %s", reflect.TypeOf(fj), reflect.TypeOf(d))
 	}
-	if data := fj.filter.Filter(fmt.Sprint(fj.entity.Data["data"])); data != nil && len(data) > 0 {
-		// TODO: Insert filtered data
-		fmt.Println(data)
+	if data := fj.filter.Filter(fmt.Sprint(fj.entity.Data["data"])); data != nil {
+		if fe, err := m.db.GetOne(database.FilteredDataTableName, map[string]any{"url": fj.entity.Data["url"]}); err != mongo.ErrNoDocuments {
+			fe.Data["data"] = data
+			if err = m.db.UpdateOne(fe); err != nil {
+				log.Panicf("Failed to update filtered data, error: %s", err)
+			}
+		} else {
+			e := database.NewEntity(
+				database.FilteredDataTableName,
+				map[string]any{
+					"url":        fj.entity.Data["url"],
+					"config_id":  fj.filter.GetConfigId(),
+					"scraper_id": fj.filter.GetScraperId(),
+					"data":       data,
+				},
+			)
+			if err = m.db.InsertOne(e); err != nil {
+				log.Panicf("Failed to insert filtered data, error: %s", err)
+			}
+			if err = m.db.DeleteOne(fj.entity); err != nil {
+				log.Panicf("Failed to delete scraped data, error: %s", err)
+			}
+		}
 	}
 }

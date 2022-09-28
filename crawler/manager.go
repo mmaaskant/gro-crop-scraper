@@ -62,7 +62,7 @@ func (m *Manager) crawl(p *supervisor.Publisher, d any, rch chan any) {
 	var cj *crawlerJob
 	cj, ok := d.(*crawlerJob)
 	if !ok {
-		log.Fatalf("Expected instance of %s, got %s", reflect.TypeOf(cj), reflect.TypeOf(d))
+		log.Panicf("Expected instance of %s, got %s", reflect.TypeOf(cj), reflect.TypeOf(d))
 	}
 	cd := cj.crawler.Crawl(cj.call)
 	if cd.Error != nil {

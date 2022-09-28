@@ -1,6 +1,7 @@
 package database
 
 const ScrapedDataTableName = "scraped_data"
+const FilteredDataTableName = "filtered_data"
 
 // Db is a facade that holds an instance of Driver and forwards its functions,
 // Driver is interchangeable and allows the changing of database types.

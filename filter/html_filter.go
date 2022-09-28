@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"github.com/mmaaskant/gro-crop-scraper/attributes"
 	"golang.org/x/net/html"
 	"log"
 	"reflect"
@@ -11,38 +10,26 @@ import (
 // TODO: Add comments
 
 type HtmlFilter struct {
-	*attributes.Tag
-	criteria        []*Criteria
-	trackedCriteria map[*Criteria]any
+	*Tracker
+}
+
+func NewHtmlFilter(criteria ...*Criteria) *HtmlFilter {
+	return &HtmlFilter{
+		NewFilterTracker(criteria),
+	}
 }
 
 func (hf *HtmlFilter) Clone() Filter {
-	c := *hf
-	c.trackedCriteria = make(map[*Criteria]any)
-	return &c
+	filterCopy := *hf
+	trackerCopy := *hf.Tracker
+	filterCopy.Tracker = &trackerCopy
+	filterCopy.criteria = hf.criteria
+	filterCopy.trackedCriteria = make(map[*Criteria]bool)
+	return &filterCopy
 }
 
-func (hf *HtmlFilter) SetTag(t *attributes.Tag) {
-	hf.Tag = t
-}
-
-func (hf *HtmlFilter) getAllCriteria() map[*Criteria]any {
-	for _, c := range hf.criteria {
-		hf.trackedCriteria[c.Clone()] = nil
-	}
-	return hf.trackedCriteria
-}
-
-func NewHtmlFilter(tag *attributes.Tag, criteria ...*Criteria) *HtmlFilter {
-	return &HtmlFilter{
-		tag,
-		criteria,
-		make(map[*Criteria]any),
-	}
-}
-
-func (hf *HtmlFilter) Filter(s string) map[string]string {
-	data := make(map[string]string, 0)
+func (hf *HtmlFilter) Filter(s string) map[string]any {
+	data := make(map[string]any, 0)
 	ti := newTokenIterator(s)
 	for tt := ti.Next(); tt != html.ErrorToken; tt = ti.Next() {
 		t := ti.Token()
@@ -51,9 +38,10 @@ func (hf *HtmlFilter) Filter(s string) map[string]string {
 			case html.SelfClosingTagToken, html.StartTagToken:
 				c.Depth = ti.Depth()
 				if c.Match(&t) {
+					hf.trackedCriteria[c] = true
 					switch {
 					case c.Child != nil:
-						hf.trackedCriteria[c.Child] = nil
+						hf.trackedCriteria[c.Child] = false
 					case c.Child == nil:
 						if reflect.TypeOf(c.Extractor) == reflect.TypeOf((*HtmlAttributeExtractor)(nil)) {
 							data = merge(data, c.Extractor.Extract(&t))
@@ -65,9 +53,11 @@ func (hf *HtmlFilter) Filter(s string) map[string]string {
 				}
 			case html.TextToken:
 				if len(strings.TrimSpace(t.Data)) != 0 {
-					for c := range hf.trackedCriteria {
-						if c.Child == nil && reflect.TypeOf(c.Extractor) == reflect.TypeOf((*HtmlTextExtractor)(nil)) {
-							data = merge(data, c.Extractor.Extract(&t))
+					for c, passed := range hf.trackedCriteria {
+						if passed && c.Child == nil && reflect.TypeOf(c.Extractor) == reflect.TypeOf((*HtmlTextExtractor)(nil)) {
+							if extractedData := c.Extractor.Extract(&t); extractedData != nil {
+								data = merge(data, c.Extractor.Extract(&t))
+							}
 							delete(hf.trackedCriteria, c)
 						}
 					}
@@ -75,7 +65,7 @@ func (hf *HtmlFilter) Filter(s string) map[string]string {
 			case html.EndTagToken:
 				if c.Depth < ti.Depth() {
 					if c.Parent != nil && c.Parent.Child != nil {
-						hf.trackedCriteria[c.Parent] = nil
+						hf.trackedCriteria[c.Parent] = false
 					}
 					delete(hf.trackedCriteria, c)
 				}
@@ -85,7 +75,7 @@ func (hf *HtmlFilter) Filter(s string) map[string]string {
 	return data
 }
 
-func merge(destination map[string]string, source map[string]string) map[string]string { // TODO: Currently does not handle merging of data
+func merge(destination map[string]any, source map[string]any) map[string]any { // TODO: Currently does not handle merging of data
 	for k, v := range source {
 		if _, hasKey := destination[k]; hasKey {
 			log.Printf("Filter data aready has key %s with value %s, overwriting ...", k, destination[k])

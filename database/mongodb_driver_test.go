@@ -51,13 +51,16 @@ func TestMongoDbDriver_Many(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to update multiple rows in DB, error: %s", err)
 	}
-	entities, err := db.GetMany(ScrapedDataTableName, map[string]any{"config_id": "test"})
-	for _, entity := range entities {
-		if entity.UpdatedAt == nil {
-			t.Errorf("Entity %v UpdatedAt is nil, expected timestamp.", entity)
+	iterator, err := db.GetMany(ScrapedDataTableName, map[string]any{"config_id": "test"})
+	if err != nil {
+		t.Errorf("Failed to initialise iterator, error: %s", err)
+	}
+	for e, _ := iterator.Next(); e != nil; e, _ = iterator.Next() {
+		if e.UpdatedAt == nil {
+			t.Errorf("Entity %v UpdatedAt is nil, expected timestamp.", e)
 		}
-		if entity.Data["updated"] != true {
-			t.Errorf("Entity %v data.updated is %v, expected: %v", entity, entity.Data["updated"], true)
+		if e.Data["updated"] != true {
+			t.Errorf("Entity %v data.updated is %v, expected: %v", e, e.Data["updated"], true)
 		}
 	}
 	err = db.DeleteMany(ScrapedDataTableName, map[string]any{"config_id": "test"})

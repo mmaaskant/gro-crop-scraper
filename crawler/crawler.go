@@ -36,7 +36,7 @@ func NewCall(r *http.Request, RequestType string) *Call {
 func NewRequest(method string, url string, body io.Reader) *http.Request {
 	r, err := http.NewRequest(method, url, body)
 	if err != nil {
-		log.Fatalf("Failed to create crawler HTTP request, error: %s", err)
+		log.Panicf("Failed to create crawler HTTP request, error: %s", err)
 	}
 	return r
 }

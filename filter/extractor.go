@@ -12,29 +12,91 @@ import (
 // TODO: Add comments
 
 type Extractor interface {
-	Extract(data any) map[string]string
+	Extract(data any) map[string]any
+}
+
+type KeyValueExtractor struct {
+	keyRegex   *regexp.Regexp
+	valueRegex *regexp.Regexp
+	Clean      *func(data map[string]any) map[string]any
+}
+
+func (kve *KeyValueExtractor) Extract(data any) map[string]any {
+	var pair map[string]any
+	pair, ok := data.(map[string]any)
+	if !ok {
+		log.Panicf(formatExtractorTypeErrorMessage(pair, data))
+	}
+	for k, v := range pair {
+		if kve.keyRegex != nil {
+			if !kve.keyRegex.MatchString(k) {
+				return nil
+			}
+		}
+		if kve.valueRegex != nil {
+			switch value := v.(type) {
+			case string:
+				if !kve.valueRegex.MatchString(value) {
+					return nil
+				}
+			case *string:
+				if !kve.valueRegex.MatchString(*value) {
+					return nil
+				}
+			case []any:
+				values := make([]string, 0)
+				for _, listItem := range value {
+					item := fmt.Sprint(listItem)
+					if kve.valueRegex.MatchString(item) {
+						values = append(values, item)
+					}
+				}
+				if len(values) == 0 {
+					return nil
+				}
+				pair = map[string]any{k: values}
+			}
+		}
+
+	}
+	if kve.Clean != nil {
+		pair = (*kve.Clean)(pair)
+	}
+	return pair
+}
+
+func NewKeyValueExtractor(keyExpr string, valueExpr string, clean ...func(data map[string]any) map[string]any) *KeyValueExtractor {
+	var f *func(data map[string]any) map[string]any
+	if len(clean) > 0 {
+		f = &clean[0]
+	}
+	return &KeyValueExtractor{
+		helper.CompileRegex(&keyExpr),
+		helper.CompileRegex(&valueExpr),
+		f,
+	}
 }
 
 type HtmlTextExtractor struct {
 	id    string
-	Clean *func(data map[string]string) map[string]string
+	Clean *func(data map[string]any) map[string]any
 }
 
-func (hte *HtmlTextExtractor) Extract(data any) map[string]string {
+func (hte *HtmlTextExtractor) Extract(data any) map[string]any {
 	var token *html.Token
 	token, ok := data.(*html.Token)
 	if !ok {
-		log.Fatalf(formatExtractorTypeErrorMessage(token, data))
+		log.Panicf(formatExtractorTypeErrorMessage(token, data))
 	}
-	text := map[string]string{hte.id: token.Data}
+	text := map[string]any{hte.id: token.Data}
 	if hte.Clean != nil {
 		text = (*hte.Clean)(text)
 	}
 	return text
 }
 
-func NewHtmlTextExtractor(id string, clean ...func(map[string]string) map[string]string) *HtmlTextExtractor {
-	var f *func(data map[string]string) map[string]string
+func NewHtmlTextExtractor(id string, clean ...func(data map[string]any) map[string]any) *HtmlTextExtractor {
+	var f *func(data map[string]any) map[string]any
 	if len(clean) > 0 {
 		f = &clean[0]
 	}
@@ -46,16 +108,16 @@ func NewHtmlTextExtractor(id string, clean ...func(map[string]string) map[string
 
 type HtmlAttributeExtractor struct {
 	keyRegex *regexp.Regexp
-	Clean    *func(data map[string]string) map[string]string
+	Clean    *func(data map[string]any) map[string]any
 }
 
-func (hae *HtmlAttributeExtractor) Extract(data any) map[string]string {
+func (hae *HtmlAttributeExtractor) Extract(data any) map[string]any {
 	var token *html.Token
 	token, ok := data.(*html.Token)
 	if !ok {
-		log.Fatalf(formatExtractorTypeErrorMessage(token, data))
+		log.Panicf(formatExtractorTypeErrorMessage(token, data))
 	}
-	attributes := make(map[string]string)
+	attributes := make(map[string]any)
 	for _, attr := range token.Attr {
 		if hae.keyRegex.MatchString(attr.Key) {
 			attributes[attr.Key] = attr.Val
@@ -67,8 +129,8 @@ func (hae *HtmlAttributeExtractor) Extract(data any) map[string]string {
 	return attributes
 }
 
-func NewHtmlAttributeExtractor(keyExpr string, clean ...func(map[string]string) map[string]string) *HtmlAttributeExtractor {
-	var f *func(data map[string]string) map[string]string
+func NewHtmlAttributeExtractor(keyExpr string, clean ...func(map[string]any) map[string]any) *HtmlAttributeExtractor {
+	var f *func(data map[string]any) map[string]any
 	if len(clean) > 0 {
 		f = &clean[0]
 	}
@@ -79,5 +141,5 @@ func NewHtmlAttributeExtractor(keyExpr string, clean ...func(map[string]string) 
 }
 
 func formatExtractorTypeErrorMessage(expected any, got any) string {
-	return fmt.Sprintf("Extractor expected type %s, got: %s", reflect.TypeOf(expected), reflect.TypeOf(got)) // TODO: Implement this for all type of checks
+	return fmt.Sprintf("Extractor expected type %s, got: %s", reflect.TypeOf(expected), reflect.TypeOf(got))
 }

@@ -15,6 +15,30 @@ type ConditionInterpreter interface {
 	Interpret(data any) bool
 }
 
+type KeyValueInterpreter struct {
+	condition *Condition
+}
+
+func (kvi *KeyValueInterpreter) Interpret(data any) bool {
+	var pair map[string]any
+	pair, ok := data.(map[string]any)
+	if !ok {
+		log.Panicf(formatInterpreterTypeErrorMessage(pair, data))
+	}
+	for k, v := range pair {
+		if !kvi.condition.MatchOne(&k, &v) {
+			return false
+		}
+	}
+	return true
+}
+
+func NewKeyValueInterpreter(keyExpr string, valueExpr string) *KeyValueInterpreter {
+	return &KeyValueInterpreter{
+		NewCondition(&keyExpr, &valueExpr),
+	}
+}
+
 type HtmlTokenTagInterpreter struct {
 	condition *Condition
 }
@@ -23,7 +47,7 @@ func (htti *HtmlTokenTagInterpreter) Interpret(data any) bool {
 	var token *html.Token
 	token, ok := data.(*html.Token)
 	if !ok {
-		log.Fatalf(formatInterpreterTypeErrorMessage(token, data))
+		log.Panicf(formatInterpreterTypeErrorMessage(token, data))
 	}
 	return htti.condition.MatchOne(&token.Data, nil)
 }
@@ -42,7 +66,7 @@ func (htai *HtmlTokenAttributeInterpreter) Interpret(data any) bool {
 	var token *html.Token
 	token, ok := data.(*html.Token)
 	if !ok {
-		log.Fatalf(formatInterpreterTypeErrorMessage(token, data))
+		log.Panicf(formatInterpreterTypeErrorMessage(token, data))
 	}
 	for _, attr := range token.Attr {
 		if !htai.condition.MatchOne(&attr.Key, &attr.Val) {
@@ -57,6 +81,7 @@ func NewHtmlTokenAttributeInterpreter(keyExpr string, valueExpr string) *HtmlTok
 		NewCondition(&keyExpr, &valueExpr),
 	}
 }
+
 func formatInterpreterTypeErrorMessage(expected any, got any) string {
 	return fmt.Sprintf("Interperter expected type %s, got: %s", reflect.TypeOf(expected), reflect.TypeOf(got))
 }
@@ -73,12 +98,30 @@ func NewCondition(keyExpr *string, valueExpr *string) *Condition {
 	}
 }
 
-func (c *Condition) MatchOne(key *string, value *string) bool {
+func (c *Condition) MatchOne(key *string, value any) bool {
 	if c.keyRegex != nil && key != nil && !c.keyRegex.MatchString(*key) {
 		return false
 	}
-	if c.valueRegex != nil && value != nil && !c.valueRegex.MatchString(*value) {
-		return false
+	if c.valueRegex != nil && value != nil {
+		switch v := value.(type) {
+		case *string:
+			if !c.valueRegex.MatchString(*v) {
+				return false
+			}
+		case string:
+			if !c.valueRegex.MatchString(v) {
+				return false
+			}
+		case []any:
+			for _, s := range v {
+				if c.valueRegex.MatchString(fmt.Sprint(s)) {
+					return true
+				}
+			}
+			return false
+		default:
+			return false
+		}
 	}
 	return true
 }

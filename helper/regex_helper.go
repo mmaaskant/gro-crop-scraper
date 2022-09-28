@@ -8,12 +8,12 @@ import (
 )
 
 func CompileRegex(expr *string) *regexp.Regexp {
-	if expr == nil {
+	if expr == nil || *expr == "" {
 		return nil
 	}
 	regex, err := regexp.Compile(*expr)
 	if err != nil {
-		log.Fatalf("Failed to compile regex %s, error: %s", expr, err)
+		log.Panicf("Failed to compile regex %s, error: %s", expr, err)
 	}
 	return regex
 }

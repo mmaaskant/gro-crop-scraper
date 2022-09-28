@@ -8,13 +8,17 @@ import "time"
 type Driver interface {
 	connect() error
 	GetOne(table string, params map[string]any) (*Entity, error)
-	GetMany(table string, params map[string]any, limit ...int) ([]*Entity, error)
+	GetMany(table string, params map[string]any) (ResultIterator, error)
 	InsertOne(e *Entity) error
 	InsertMany(entities []*Entity) error
 	UpdateOne(e *Entity) error
 	UpdateMany(table string, filter map[string]any, update map[string]any) error
 	DeleteOne(e *Entity) error
 	DeleteMany(table string, filter map[string]any) error
+}
+
+type ResultIterator interface {
+	Next() (*Entity, error)
 }
 
 // Entity holds results from DB queries and is used to interact with Driver.

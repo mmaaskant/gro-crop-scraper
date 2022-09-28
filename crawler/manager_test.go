@@ -53,11 +53,11 @@ func TestCrawlerManager_Start(t *testing.T) {
 		DiscoverRequestType,
 	)})
 	m.Start(10)
-	entities, err := db.GetMany(database.ScrapedDataTableName, map[string]any{"config_id": "test"})
+	iterator, err := db.GetMany(database.ScrapedDataTableName, map[string]any{"config_id": "test"})
 	if err != nil {
-		t.Errorf("Failed to fetch results from DB, error: %s", err)
+		t.Errorf("Failed to initialise iterator, error: %s", err)
 	}
-	for _, e := range entities {
+	for e, _ := iterator.Next(); e != nil; e, _ = iterator.Next() {
 		ex := expected[fmt.Sprint(e.Data["url"])]
 		ex.Id = e.Id
 		ex.Data["_id"] = e.Data["_id"]

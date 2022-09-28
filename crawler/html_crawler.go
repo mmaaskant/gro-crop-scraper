@@ -54,7 +54,7 @@ func (hc *HtmlCrawler) AddExtractUrlRegex(expr string) {
 func (hc *HtmlCrawler) addRegex(expr string, requestType string) {
 	r, err := regexp.Compile(expr)
 	if err != nil {
-		log.Fatalf("Failed to compile %s urlRegex %s, error: %s", requestType, expr, err)
+		log.Panicf("Failed to compile %s urlRegex %s, error: %s", requestType, expr, err)
 	}
 	hc.urlRegex[r] = requestType
 }
@@ -106,7 +106,7 @@ func (hc *HtmlCrawler) findCalls(body string) []*Call {
 func (hc *HtmlCrawler) clean(r *http.Request, body string) (string, error) {
 	node, err := html.Parse(strings.NewReader(body))
 	if err != nil {
-		log.Fatalf("Failed to parse HTML %s, error: %s", body, err)
+		log.Panicf("Failed to parse HTML %s, error: %s", body, err)
 		return "", err
 	}
 	err = hc.formatUrls(r, node)

@@ -23,6 +23,31 @@ func NewMongoDbDriver() *MongoDbDriver {
 	return &MongoDbDriver{}
 }
 
+type MongoDbResultIterator struct {
+	table  string
+	driver *MongoDbDriver
+	cursor *mongo.Cursor
+}
+
+func newMongoDBResultIterator(table string, driver *MongoDbDriver, cursor *mongo.Cursor) *MongoDbResultIterator {
+	return &MongoDbResultIterator{
+		table,
+		driver,
+		cursor,
+	}
+}
+
+func (mdri *MongoDbResultIterator) Next() (*Entity, error) {
+	var data bson.M
+	if !mdri.cursor.Next(context.TODO()) {
+		return nil, nil
+	}
+	if err := bson.Unmarshal(mdri.cursor.Current, &data); err != nil {
+		log.Panicf("Failed to unmarshal cursor next result, error: %s", err)
+	}
+	return mdri.driver.hydrateEntity(mdri.table, data), nil
+}
+
 // connect attempts to connect to an instance of MongoDB using the provided .env variables.
 func (mdd *MongoDbDriver) connect() error {
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(os.Getenv("MONGODB_URI")))
@@ -43,28 +68,12 @@ func (mdd *MongoDbDriver) GetOne(table string, params map[string]any) (*Entity, 
 	return e, err
 }
 
-func (mdd *MongoDbDriver) GetMany(table string, params map[string]any, limit ...int) ([]*Entity, error) { // TODO: Should support batches/an iterator to prevent heavy load on memory
-	opts := options.FindOptions{}
-	if len(limit) > 0 {
-		l := int64(limit[0])
-		opts.Limit = &l
-	}
-	c, err := mdd.db.Collection(table).Find(context.TODO(), mdd.bsonMarshal(params), &opts)
+func (mdd *MongoDbDriver) GetMany(table string, params map[string]any) (ResultIterator, error) {
+	c, err := mdd.db.Collection(table).Find(context.TODO(), mdd.bsonMarshal(params))
 	if err != nil {
 		return nil, err
 	}
-	var r []bson.D
-	err = c.All(context.TODO(), &r)
-	if err != nil {
-		return nil, err
-	}
-	entities := make([]*Entity, 0)
-	for _, v := range r {
-		e := mdd.hydrateEntity(table, v.Map())
-
-		entities = append(entities, e)
-	}
-	return entities, err
+	return newMongoDBResultIterator(table, mdd, c), err
 }
 
 func (mdd *MongoDbDriver) hydrateEntity(table string, m bson.M) *Entity {
@@ -79,7 +88,7 @@ func (mdd *MongoDbDriver) hydrateEntity(table string, m bson.M) *Entity {
 func (mdd *MongoDbDriver) bsonMarshal(d any) []byte {
 	r, err := bson.Marshal(d)
 	if err != nil {
-		log.Fatalf("BSON Marshal err: %s, Value: %v", err, d)
+		log.Panicf("BSON Marshal err: %s, Value: %v", err, d)
 	}
 	return r
 }
@@ -92,7 +101,7 @@ func (mdd *MongoDbDriver) convertToTime(v any) *time.Time {
 	var pdt primitive.DateTime
 	pdt, ok := v.(primitive.DateTime)
 	if !ok {
-		log.Fatalf(
+		log.Panicf(
 			"Expected instance of %s while converting to %s, got: %s",
 			reflect.TypeOf(pdt),
 			reflect.TypeOf((*time.Time)(nil)),
@@ -170,13 +179,13 @@ func (mdd *MongoDbDriver) setUpdatedAt(e *Entity) {
 	e.Data["updated_at"] = primitive.NewDateTimeFromTime(t)
 }
 
-func (mdd *MongoDbDriver) DeleteOne(e *Entity) error { // TODO: Set pointer to nil of affected entity?
+func (mdd *MongoDbDriver) DeleteOne(e *Entity) error {
 	_, err := mdd.db.Collection(e.Table).DeleteOne(context.TODO(), bson.D{{"_id", e.Id}})
 	return err
 }
 
 // DeleteMany deletes multiple rows within MongoDB based on the provided table and filter.
-func (mdd *MongoDbDriver) DeleteMany(table string, filter map[string]any) error { // TODO: Set pointers to nil of affected entities?
+func (mdd *MongoDbDriver) DeleteMany(table string, filter map[string]any) error {
 	_, err := mdd.db.Collection(table).DeleteMany(context.TODO(), mdd.bsonMarshal(filter))
 	return err
 }
