@@ -7,8 +7,9 @@ import (
 	"strings"
 )
 
-// TODO: Add comments
-
+// HtmlFilter implements Filter and iterates over HTML using HtmlTokenIterator.
+// As it walks through the HTML document it searches for any matching Criteria,
+// and extracts any found data with if Criteria has an Extractor.
 type HtmlFilter struct {
 	*Tracker
 }
@@ -28,6 +29,9 @@ func (hf *HtmlFilter) Clone() Filter {
 	return &filterCopy
 }
 
+// Filter iterates over all tags within the given HTML, and applies Criteria for every found start tag.
+// Any fully matched Criteria that have an Extractor will extract data from the matched tag
+// and return it once the filter is finished.
 func (hf *HtmlFilter) Filter(s string) map[string]any {
 	data := make(map[string]any, 0)
 	ti := newTokenIterator(s)

@@ -9,16 +9,18 @@ import (
 	"regexp"
 )
 
-// TODO: Add comments
-
+// ConditionInterpreter functions as a Mediator for Condition, allowing the data to be typed and matched.
 type ConditionInterpreter interface {
 	Interpret(data any) bool
 }
 
+// KeyValueInterpreter implements ConditionInterpreter and allows a key value pair in the format
+// map[string]any to be parsed.
 type KeyValueInterpreter struct {
 	condition *Condition
 }
 
+// Interpret implements ConditionInterpreter.Interpret.
 func (kvi *KeyValueInterpreter) Interpret(data any) bool {
 	var pair map[string]any
 	pair, ok := data.(map[string]any)
@@ -39,10 +41,13 @@ func NewKeyValueInterpreter(keyExpr string, valueExpr string) *KeyValueInterpret
 	}
 }
 
+// HtmlTokenTagInterpreter implements ConditionInterpreter and allows an instance of *html.Token
+// to be parsed, and checks if its tag matches or not.
 type HtmlTokenTagInterpreter struct {
 	condition *Condition
 }
 
+// Interpret implements ConditionInterpreter.Interpret.
 func (htti *HtmlTokenTagInterpreter) Interpret(data any) bool {
 	var token *html.Token
 	token, ok := data.(*html.Token)
@@ -58,10 +63,13 @@ func NewHtmlTokenTagInterpreter(expr string) *HtmlTokenTagInterpreter {
 	}
 }
 
+// HtmlTokenAttributeInterpreter implements ConditionInterpreter and allows an instance of *html.Token
+// to be parsed, and checks if any matching attributes are found.
 type HtmlTokenAttributeInterpreter struct {
 	condition *Condition
 }
 
+// Interpret implements ConditionInterpreter.Interpret.
 func (htai *HtmlTokenAttributeInterpreter) Interpret(data any) bool {
 	var token *html.Token
 	token, ok := data.(*html.Token)
@@ -69,11 +77,11 @@ func (htai *HtmlTokenAttributeInterpreter) Interpret(data any) bool {
 		log.Panicf(formatInterpreterTypeErrorMessage(token, data))
 	}
 	for _, attr := range token.Attr {
-		if !htai.condition.MatchOne(&attr.Key, &attr.Val) {
-			return false
+		if htai.condition.MatchOne(&attr.Key, &attr.Val) {
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func NewHtmlTokenAttributeInterpreter(keyExpr string, valueExpr string) *HtmlTokenAttributeInterpreter {
@@ -86,6 +94,7 @@ func formatInterpreterTypeErrorMessage(expected any, got any) string {
 	return fmt.Sprintf("Interperter expected type %s, got: %s", reflect.TypeOf(expected), reflect.TypeOf(got))
 }
 
+// Condition holds an optional key and value regex and determines if a value passes its requirements or not.
 type Condition struct {
 	keyRegex   *regexp.Regexp
 	valueRegex *regexp.Regexp

@@ -1,12 +1,12 @@
 package filter
 
-// TODO: Add comments
-
 import (
 	"golang.org/x/net/html"
 	"strings"
 )
 
+// HtmlTokenIterator walks through a given HTML document using html.Tokenizer.
+// The depth of the HTML document is also tracked and is available through Depth().
 type HtmlTokenIterator struct {
 	tokenizer *html.Tokenizer
 	token     html.Token

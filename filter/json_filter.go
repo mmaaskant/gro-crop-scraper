@@ -1,12 +1,13 @@
 package filter
 
-// TODO: Add comments
-
 import (
 	"encoding/json"
 	"log"
 )
 
+// JsonFilter implements Filter and iterates over the given JSON,
+// As it walks over the given JSON it uses Criteria to search for any matching data.
+// These matches are optionally extracted using Extractor and returned once the Filter has finished running.
 type JsonFilter struct {
 	*Tracker
 }

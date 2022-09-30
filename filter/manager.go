@@ -10,8 +10,7 @@ import (
 	"reflect"
 )
 
-// TODO: Add comments
-
+// Manager oversees all Filter instances manages workers to run them in using supervisor.Supervisor.
 type Manager struct {
 	db      *database.Db
 	filters []Filter
@@ -24,6 +23,7 @@ func NewManager(db *database.Db) *Manager {
 	}
 }
 
+// filterJob is a wrapper that holds a new Filter and a database.Entity to be filtered.
 type filterJob struct {
 	filter Filter
 	entity *database.Entity
@@ -46,6 +46,8 @@ func (m *Manager) RegisterFilter(f Filter) {
 	m.filters = append(m.filters, f)
 }
 
+// Start starts an amount of Filter workers based on the amountOfWorkers parameter.
+// All data in the "scraped_data" table will be queued to be filtered.
 func (m *Manager) Start(amountOfWorkers int) {
 	sv, p, _ := helper.StartSupervisor(amountOfWorkers, m.filter)
 	for _, f := range m.filters {
@@ -60,6 +62,7 @@ func (m *Manager) Start(amountOfWorkers int) {
 	sv.Shutdown()
 }
 
+// filter receives filterJob instances and processes these, any extracted data is saved in the "filtered_data" table.
 func (m *Manager) filter(p *supervisor.Publisher, d any, rch chan any) {
 	var fj *filterJob
 	fj, ok := d.(*filterJob)

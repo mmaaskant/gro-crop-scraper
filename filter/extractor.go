@@ -9,12 +9,13 @@ import (
 	"regexp"
 )
 
-// TODO: Add comments
-
+// Extractor attempts to map, organise and extract data and return it.
 type Extractor interface {
 	Extract(data any) map[string]any
 }
 
+// KeyValueExtractor implements Extractor and extracts data based on the provided key and value regexes.
+// An optional Clean function can be provided which is run on the results found before they are returned.
 type KeyValueExtractor struct {
 	keyRegex   *regexp.Regexp
 	valueRegex *regexp.Regexp
@@ -77,6 +78,8 @@ func NewKeyValueExtractor(keyExpr string, valueExpr string, clean ...func(data m
 	}
 }
 
+// HtmlTextExtractor implements Extractor and extracts text from the *html.Token.
+// An optional Clean function can be provided which is run on the results found before they are returned.
 type HtmlTextExtractor struct {
 	id    string
 	Clean *func(data map[string]any) map[string]any
@@ -106,6 +109,8 @@ func NewHtmlTextExtractor(id string, clean ...func(data map[string]any) map[stri
 	}
 }
 
+// HtmlAttributeExtractor implements Extractor and extracts attributes from the given *html.Token.
+// An optional Clean function can be provided which is run on the results found before they are returned.
 type HtmlAttributeExtractor struct {
 	keyRegex *regexp.Regexp
 	Clean    *func(data map[string]any) map[string]any

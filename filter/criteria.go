@@ -1,7 +1,6 @@
 package filter
 
-// TODO: Add comments
-
+// CriteriaBuilder simplifies the adding of children to a Criteria.
 type CriteriaBuilder struct {
 	criteria *Criteria
 }
@@ -27,6 +26,8 @@ func (cb *CriteriaBuilder) Build() *Criteria {
 	return criteria
 }
 
+// Criteria defines if a set of data passes its requirements or not, and can optionally extract the matched data
+// using Extractor.
 type Criteria struct {
 	Extractor    Extractor
 	interpreters []ConditionInterpreter
