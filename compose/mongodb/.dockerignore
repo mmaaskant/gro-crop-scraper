@@ -1,0 +1,3 @@
+# Ignore all but ./init_db.js, which is used to initialise the MongoDB tables.
+*
+!./init_db.js
