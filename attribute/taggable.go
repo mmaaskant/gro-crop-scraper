@@ -1,4 +1,4 @@
-package attributes
+package attribute
 
 // Taggable allows a type to tag itself by storing a config.Config ID and a scraper.Scraper ID,
 // these IDs allow processes to identify the source of the tagged type.

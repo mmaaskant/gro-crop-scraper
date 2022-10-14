@@ -1,17 +1,17 @@
 package filter
 
-import "github.com/mmaaskant/gro-crop-scraper/attributes"
+import "github.com/mmaaskant/gro-crop-scraper/attribute"
 
 // Filter defines the ability to filter a type of data potentially extract any desired results using Criteria.
 type Filter interface {
-	attributes.Taggable
+	attribute.Taggable
 	Clone() Filter
 	Filter(s string) map[string]any
 }
 
 // Tracker is used to track and manage a Filter's Criteria.
 type Tracker struct {
-	*attributes.Tag
+	*attribute.Tag
 	criteria        []*Criteria
 	trackedCriteria map[*Criteria]bool
 }
@@ -24,7 +24,7 @@ func NewFilterTracker(criteria []*Criteria) *Tracker {
 	}
 }
 
-func (tr *Tracker) SetTag(t *attributes.Tag) {
+func (tr *Tracker) SetTag(t *attribute.Tag) {
 	tr.Tag = t
 }
 

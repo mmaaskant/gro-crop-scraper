@@ -43,8 +43,6 @@ func (m *Manager) RegisterScraper(s *Scraper) {
 
 // Start starts Scraper and its components and waits till all components have finished running.
 func (m *Manager) Start() {
-	// TODO: Cache current process and restart where left off?
-	// TODO: Only start if components have been found that manager is responsible for
 	m.crawlerManager.Start(m.getWorkerCount("GOPHERVISOR_CRAWLER_WORKER_COUNT"))
 	m.filterManager.Start(m.getWorkerCount("GOPHERVISOR_FILTER_WORKER_COUNT"))
 }

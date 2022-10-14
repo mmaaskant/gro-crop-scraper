@@ -2,7 +2,7 @@ package crawler
 
 import (
 	"fmt"
-	"github.com/mmaaskant/gro-crop-scraper/attributes"
+	"github.com/mmaaskant/gro-crop-scraper/attribute"
 	"github.com/mmaaskant/gro-crop-scraper/database"
 	"github.com/mmaaskant/gro-crop-scraper/test/httpserver"
 	"net/http"
@@ -45,7 +45,7 @@ func TestCrawlerManager_Start(t *testing.T) {
 	}
 	m := NewManager(db)
 	c := NewHtmlCrawler(&http.Client{})
-	c.SetTag(attributes.NewTag("test", "test_html"))
+	c.SetTag(attribute.NewTag("test", "test_html"))
 	c.AddDiscoveryUrlRegex(fmt.Sprintf(`(https?:\/\/)?%s\/?discovery-(\d*)(\.html)\/?`, url))
 	c.AddExtractUrlRegex(fmt.Sprintf(`(https?:\/\/)?%s\/?extract-(\d*)(\.html)\/?`, url))
 	m.RegisterCrawler(c, []*Call{NewCall(

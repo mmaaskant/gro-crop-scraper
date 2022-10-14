@@ -1,7 +1,7 @@
 package crawler
 
 import (
-	"github.com/mmaaskant/gro-crop-scraper/attributes"
+	"github.com/mmaaskant/gro-crop-scraper/attribute"
 	"io"
 	"log"
 	"net/http"
@@ -9,7 +9,7 @@ import (
 
 // RestCrawler crawls REST APIs using the provided Call instance.
 type RestCrawler struct {
-	*attributes.Tag
+	*attribute.Tag
 	client *http.Client
 }
 
@@ -21,7 +21,7 @@ func NewRestCrawler(c *http.Client) *RestCrawler {
 	}
 }
 
-func (rc *RestCrawler) SetTag(t *attributes.Tag) {
+func (rc *RestCrawler) SetTag(t *attribute.Tag) {
 	rc.Tag = t
 }
 

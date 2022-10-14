@@ -2,7 +2,7 @@ package config
 
 import (
 	"flag"
-	"github.com/mmaaskant/gro-crop-scraper/attributes"
+	"github.com/mmaaskant/gro-crop-scraper/attribute"
 	"github.com/mmaaskant/gro-crop-scraper/scraper"
 )
 
@@ -46,6 +46,6 @@ func GetConfigs() []*Config {
 // if flags are found any steps that have not been flagged are excluded from the scraper.Scraper.
 // This exclusion prevents the step from being executed.
 func (c *Config) AddScraper(id string, s *scraper.Scraper) {
-	s.SetTag(attributes.NewTag(c.Id, id))
+	s.SetTag(attribute.NewTag(c.Id, id))
 	c.Scrapers = append(c.Scrapers, s)
 }

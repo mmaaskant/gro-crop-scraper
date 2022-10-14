@@ -11,7 +11,7 @@ import (
 // Config filters are provided as command flags in the format" "--<config_name>",
 // Step filters are provided as command flags in the format: "--<step_name>".
 // If no filters are provided, all configs and their steps will be executed.
-func main() { // TODO: Check CPU and mem usage
+func main() {
 	db, err := database.NewDb(database.NewMongoDbDriver())
 	if err != nil {
 		log.Panicf("Failed to connect to database, error: %s", err)

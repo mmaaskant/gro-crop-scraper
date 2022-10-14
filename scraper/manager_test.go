@@ -2,7 +2,7 @@ package scraper
 
 import (
 	"fmt"
-	"github.com/mmaaskant/gro-crop-scraper/attributes"
+	"github.com/mmaaskant/gro-crop-scraper/attribute"
 	"github.com/mmaaskant/gro-crop-scraper/crawler"
 	"github.com/mmaaskant/gro-crop-scraper/database"
 	"github.com/mmaaskant/gro-crop-scraper/test/httpserver"
@@ -24,7 +24,7 @@ func TestNewScraperManager_Start(t *testing.T) {
 	}
 	m := NewManager(db)
 	s := NewScraper(newTestHtmlCrawler(url), getTestHtmlCrawlerCalls(url), nil)
-	s.SetTag(attributes.NewTag(TestConfigId, TestScraperId))
+	s.SetTag(attribute.NewTag(TestConfigId, TestScraperId))
 	m.RegisterScraper(s)
 	m.Start()
 	err = db.DeleteMany(database.ScrapedDataTableName, map[string]any{"config_id": "test"})

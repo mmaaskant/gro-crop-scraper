@@ -39,6 +39,3 @@ services:
     volumes:
       - ./compose/mongodb/data:/data/db
     command: --logpath /dev/null
-
-# TODO: Separate into dev, or at least show that this file is meant for dev only + add note in repo about dev vendor
-# TODO: Use .env and offer .env templates in repo that do not contain passwords

@@ -1,6 +1,8 @@
 package database
 
-import "time"
+import (
+	"time"
+)
 
 // Driver holds functions to communicate with a database in a streamlined fashion,
 // and is meant to be interchangeable so databases types can be easily switched if required.
@@ -29,6 +31,26 @@ type Entity struct {
 	Data      map[string]any
 	CreatedAt *time.Time
 	UpdatedAt *time.Time
+}
+
+// Get attempts to fetch data from Entity by key, and returns it if matched or nil otherwise.
+func (e *Entity) Get(key string) any {
+	if m, ok := e.Data["data"].(map[string]any); ok {
+		if data, ok := m[key]; ok {
+			return data
+		}
+	}
+	return nil
+}
+
+// GetString attempts to fetch data from Entity by key and checks if it is a string or not.
+// If so, the string is returned or nil otherwise.
+func (e *Entity) GetString(key string) *string {
+	data := e.Get(key)
+	if s, ok := data.(string); ok {
+		return &s
+	}
+	return nil
 }
 
 func NewEntity(table string, data map[string]any) *Entity {

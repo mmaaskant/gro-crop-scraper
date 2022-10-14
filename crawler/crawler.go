@@ -1,7 +1,7 @@
 package crawler
 
 import (
-	"github.com/mmaaskant/gro-crop-scraper/attributes"
+	"github.com/mmaaskant/gro-crop-scraper/attribute"
 	"io"
 	"log"
 	"net/http"
@@ -13,9 +13,9 @@ const (
 )
 
 // Crawler crawls any URL and returns Data containing what it has found,
-// it also implements attributes.Taggable allowing it to tag said Data.
+// it also implements attribute.Taggable allowing it to tag said Data.
 type Crawler interface { // TODO: Clients should support retries
-	attributes.Taggable
+	attribute.Taggable
 	Crawl(c *Call) *Data
 }
 
@@ -43,14 +43,14 @@ func NewRequest(method string, url string, body io.Reader) *http.Request {
 
 // Data contains all data that was found by a Crawler.Crawl call, the Call itself, and a collection of found calls.
 type Data struct {
-	*attributes.Tag
+	*attribute.Tag
 	Call       *Call
 	Data       string
 	FoundCalls []*Call
 	Error      error
 }
 
-func NewData(t *attributes.Tag, call *Call, data string, foundCalls []*Call, err error) *Data {
+func NewData(t *attribute.Tag, call *Call, data string, foundCalls []*Call, err error) *Data {
 	return &Data{
 		t,
 		call,

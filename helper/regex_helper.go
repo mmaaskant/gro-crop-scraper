@@ -12,7 +12,7 @@ func CompileRegex(expr *string) *regexp.Regexp {
 	}
 	regex, err := regexp.Compile(*expr)
 	if err != nil {
-		log.Panicf("Failed to compile regex %s, error: %s", expr, err)
+		log.Panicf("Failed to compile regex %v, error: %s", expr, err)
 	}
 	return regex
 }

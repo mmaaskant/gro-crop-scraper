@@ -13,7 +13,6 @@ import (
 const (
 	BurpeeConfigId      = "burpee"
 	BurpeeHtmlScraperId = "burpee_html"
-	BurpeeZoneScraperId = "burpee_zones"
 )
 
 // NewBurpeeConfig holds components configured to scrape https://burpee.com.

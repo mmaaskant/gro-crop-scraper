@@ -3,7 +3,7 @@ package crawler
 import (
 	"bytes"
 	"fmt"
-	"github.com/mmaaskant/gro-crop-scraper/attributes"
+	"github.com/mmaaskant/gro-crop-scraper/attribute"
 	"golang.org/x/net/html"
 	"io"
 	"log"
@@ -17,7 +17,7 @@ import (
 // as it uses http.Client.Do() nothing is rendered so data hidden in API calls will not be fetched.
 // HtmlCrawler is concurrency safe and keeps a registry of all found URLs.
 type HtmlCrawler struct {
-	*attributes.Tag
+	*attribute.Tag
 	client      *http.Client
 	hrefRegex   *regexp.Regexp
 	urlRegex    map[*regexp.Regexp]string
@@ -37,7 +37,7 @@ func NewHtmlCrawler(c *http.Client) *HtmlCrawler {
 	}
 }
 
-func (hc *HtmlCrawler) SetTag(t *attributes.Tag) {
+func (hc *HtmlCrawler) SetTag(t *attribute.Tag) {
 	hc.Tag = t
 }
 
